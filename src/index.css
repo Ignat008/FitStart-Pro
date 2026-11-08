@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background: #090d16;
+  color: #e6ecff;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Cyber scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0f1626;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293f;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3b82f6;
+}
+
+@layer components {
+  .cyber-panel {
+    @apply bg-cyber-surface/80 border border-cyber-border rounded-2xl backdrop-blur-sm;
+  }
+  .neon-divider {
+    background: linear-gradient(90deg, transparent, #3b82f6, transparent);
+    height: 1px;
+  }
+  .grid-bg {
+    background-image:
+      linear-gradient(rgba(59, 130, 246, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59, 130, 246, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .text-glow-blue {
+    text-shadow: 0 0 12px rgba(59, 130, 246, 0.6);
+  }
+  .text-glow-pink {
+    text-shadow: 0 0 12px rgba(236, 72, 153, 0.6);
+  }
+  .text-glow-green {
+    text-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
+  }
+}
