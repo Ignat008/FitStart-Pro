@@ -22,6 +22,7 @@ import {
   CircleDot,
 } from 'lucide-react';
 import type { WorkoutPlan, Round, Exercise } from '@/types';
+import { pluralizeUk } from '@/types';
 import { formatTime } from '@/useCountdown';
 import { EQUIPMENT_LABELS } from '@/weightedLibrary';
 
@@ -50,7 +51,7 @@ export default function SessionScreen({ plan, source, onComplete, onRestart }: P
   const [currentRoundIndex, setCurrentRoundIndex] = useState(0);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [activeTimer, setActiveTimer] = useState<ActiveTimerKind>('none');
-  const [phase, setPhase] = useState<'ready' | 'active' | 'finished'>('ready');
+  const [phase, setPhase] = useState<'ready' | 'preview' | 'active' | 'finished'>('ready');
 
   const totalSets = allExercises.length;
   const doneCount = completed.size;
@@ -76,9 +77,24 @@ export default function SessionScreen({ plan, source, onComplete, onRestart }: P
         plan={plan}
         source={source}
         onStart={() => {
-          setPhase('active');
+          setPhase('preview');
         }}
         onRestart={onRestart}
+      />
+    );
+  }
+
+  if (phase === 'preview') {
+    return (
+      <PreviewView
+        plan={plan}
+        source={source}
+        onStart={() => {
+          setPhase('active');
+        }}
+        onBack={() => {
+          setPhase('ready');
+        }}
       />
     );
   }
@@ -162,6 +178,147 @@ function ReadyView({
           <Home size={15} />
           Назад до налаштувань
         </button>
+      </div>
+    </div>
+  );
+}
+
+function PreviewView({
+  plan,
+  source,
+  onStart,
+  onBack,
+}: {
+  plan: WorkoutPlan;
+  source: 'ai' | 'fallback';
+  onStart: () => void;
+  onBack: () => void;
+}) {
+  const totalExercises = plan.rounds.reduce((sum, r) => sum + r.exercises.length, 0);
+  const totalSets = plan.rounds.reduce(
+    (sum, r) => sum + r.exercises.reduce((s, ex) => s + (ex.sets ?? 1), 0),
+    0,
+  );
+
+  return (
+    <div className="min-h-screen grid-bg relative overflow-hidden">
+      <div className="pointer-events-none absolute -top-40 -left-40 w-96 h-96 rounded-full bg-neon-blue/10 blur-3xl" />
+      <div className="pointer-events-none absolute top-0 right-0 w-96 h-96 rounded-full bg-neon-pink/10 blur-3xl" />
+
+      <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-8 py-8 pb-32">
+        <div className="text-center mb-8 animate-slide-up">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-neon-blue/30 bg-neon-blue/5 text-xs text-neon-blue mb-4">
+            <Dumbbell size={12} />
+            <span className="tracking-widest uppercase">План тренування</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight leading-tight">
+            {plan.title}
+          </h1>
+          <p className="text-cyber-muted mt-2 text-sm">
+            Ознайомтеся з усіма вправами перед стартом
+          </p>
+          <p className="text-[11px] uppercase tracking-widest text-cyber-muted mt-2">
+            {plan.mode === 'hardcore' ? 'Hardcore Mode' : 'Adaptive Mode'} ·{' '}
+            {source === 'ai' ? 'AI-генерація' : 'Fallback-алгоритм'}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 mb-6 animate-slide-up" style={{ animationDelay: '0.05s' }}>
+          <ResultStat icon={TimerIcon} value={`${plan.durationMin} хв`} label="Тривалість" color="blue" />
+          <ResultStat icon={Dumbbell} value={totalExercises} label="Вправ" color="pink" />
+          <ResultStat icon={CheckCircle2} value={totalSets} label="Сетів" color="green" />
+        </div>
+
+        <div className="space-y-4">
+          {plan.rounds.map((round, ri) => {
+            const roundSets = round.exercises.reduce((s, ex) => s + (ex.sets ?? 1), 0);
+            return (
+              <section
+                key={`${round.phase}-${ri}`}
+                className="cyber-panel p-4 animate-slide-up"
+                style={{ animationDelay: `${0.08 + ri * 0.03}s` }}
+              >
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <div className="min-w-0">
+                    <h2 className="text-sm font-bold tracking-tight">{round.label}</h2>
+                    <p className="text-xs text-cyber-muted mt-0.5">{round.goal}</p>
+                  </div>
+                  <span className="shrink-0 text-[10px] font-mono uppercase tracking-wider text-neon-blue bg-neon-blue/10 border border-neon-blue/25 rounded-full px-2 py-0.5">
+                    {roundSets} {pluralizeUk(roundSets, 'сет', 'сети', 'сетів')}
+                  </span>
+                </div>
+
+                <div className="mt-3 space-y-2">
+                  {round.exercises.map((ex, ei) => {
+                    const showsSetsSeparately = ex.sets != null && !/підход/i.test(ex.reps);
+                    return (
+                      <div
+                        key={`${ri}-${ei}`}
+                        className="flex items-start gap-3 p-3 rounded-xl border border-cyber-border bg-cyber-bg/40"
+                      >
+                        <span className="shrink-0 w-7 h-7 rounded-lg border border-cyber-border text-cyber-muted flex items-center justify-center text-xs font-mono font-bold">
+                          {ei + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-sm leading-snug">{ex.name}</h3>
+                          <div className="flex items-center gap-2.5 mt-1 text-[11px] text-cyber-muted flex-wrap">
+                            <span className="flex items-center gap-1">
+                              <Dumbbell size={11} />
+                              {showsSetsSeparately
+                                ? `${ex.sets} ${pluralizeUk(ex.sets!, 'підхід', 'підходи', 'підходів')} × ${ex.reps}`
+                                : ex.reps}
+                            </span>
+                            {ex.weightKg != null && ex.weightKg > 0 && (
+                              <span className="flex items-center gap-1 text-neon-amber font-semibold">
+                                <Weight size={11} /> {ex.weightKg} кг
+                              </span>
+                            )}
+                            {ex.equipment && (
+                              <span className="flex items-center gap-1 text-neon-blue">
+                                <CircleDot size={10} /> {EQUIPMENT_LABELS[ex.equipment]?.title ?? ex.equipment}
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1">
+                              <TimerIcon size={11} /> {ex.restSec}с
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+
+        <div className="mt-8 flex flex-col items-center gap-3">
+          <p className="text-xs text-cyber-muted text-center">
+            {totalExercises} {pluralizeUk(totalExercises, 'вправа', 'вправи', 'вправ')} ·{' '}
+            {totalSets} {pluralizeUk(totalSets, 'сет', 'сети', 'сетів')} · {plan.durationMin} хв
+          </p>
+        </div>
+      </div>
+
+      {/* Sticky action bar */}
+      <div className="fixed bottom-0 inset-x-0 z-20 border-t border-cyber-border/60 bg-cyber-bg/90 backdrop-blur-md">
+        <div className="max-w-3xl mx-auto px-4 sm:px-8 py-3 flex items-center gap-3">
+          <button
+            onClick={onBack}
+            className="shrink-0 px-4 py-3 rounded-xl border border-cyber-border text-cyber-muted hover:text-cyber-text text-sm flex items-center justify-center gap-2 transition-colors"
+          >
+            <Home size={16} />
+            <span className="hidden sm:inline">Назад</span>
+          </button>
+          <button
+            onClick={onStart}
+            className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-neon-green to-neon-blue text-white font-bold flex items-center justify-center gap-2 hover:scale-[1.01] transition-transform animate-glow-green"
+          >
+            <Play size={20} />
+            Розпочати тренування
+            <ChevronRight size={18} />
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -828,12 +985,14 @@ function ResultStat({
   icon: typeof Flame;
   value: number | string;
   label: string;
-  color: 'blue' | 'orange' | 'yellow';
+  color: 'blue' | 'orange' | 'yellow' | 'pink' | 'green';
 }) {
   const map = {
     blue: 'text-neon-blue border-neon-blue/40 bg-neon-blue/5',
     orange: 'text-neon-amber border-neon-amber/40 bg-neon-amber/5',
     yellow: 'text-neon-amber border-neon-amber/40 bg-neon-amber/5',
+    pink: 'text-neon-pink border-neon-pink/40 bg-neon-pink/5',
+    green: 'text-neon-green border-neon-green/40 bg-neon-green/5',
   };
   return (
     <div className={`cyber-panel p-4 ${map[color]}`}>
