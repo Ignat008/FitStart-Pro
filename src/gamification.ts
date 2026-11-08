@@ -8,7 +8,7 @@ export interface UserProfile {
 
 const STORAGE_KEY = 'fitstart_profile';
 
-const BASE_XP_PER_WORKOUT = 100;
+const BASE_XP_PER_WORKOUT = 50; // зменшено для поступового прогресу
 const XP_PER_MINUTE = 5;
 const XP_PER_SET = 3;
 
@@ -88,17 +88,29 @@ export function awardXp(
   };
 }
 
-/** Розрахунок XP за завершене тренування. */
+/** Розрахунок XP за тренування.
+ * Якщо тренування завершено повністю — нараховується базова нагорода +
+ * бонус за тривалість та за всі сеты.
+ * Якщо тренування не завершено — нараховується лише XP за фактично виконані сеты,
+ * без базової нагороди і бонусу за тривалість.
+ */
 export function workoutXp(params: {
   durationMin: number;
   completedSets: number;
   totalSets: number;
+  completed: boolean; // чи завершено тренування до кінця
 }): number {
-  const { durationMin, completedSets } = params;
-  const base = BASE_XP_PER_WORKOUT;
-  const durationBonus = durationMin * XP_PER_MINUTE;
-  const setBonus = completedSets * XP_PER_SET;
-  return base + durationBonus + setBonus;
+  const { durationMin, completedSets, totalSets, completed } = params;
+
+  if (completed) {
+    const base = BASE_XP_PER_WORKOUT;
+    const durationBonus = durationMin * XP_PER_MINUTE;
+    const setBonus = totalSets * XP_PER_SET;
+    return base + durationBonus + setBonus;
+  }
+
+  // Незавершене тренування: лише за фактично закриті сеты
+  return completedSets * XP_PER_SET;
 }
 
 export const LEVEL_TITLES: Record<number, { title: string; color: string }> = {

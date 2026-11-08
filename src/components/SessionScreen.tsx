@@ -66,13 +66,12 @@ export default function SessionScreen({ plan, source, profile, onComplete, onRes
 
   const allDone = doneCount === totalSets && totalSets > 0;
 
-  const xpEarned = allDone
-    ? workoutXp({
-        durationMin: plan.durationMin,
-        completedSets: doneCount,
-        totalSets,
-      })
-    : 0;
+  const xpEarned = workoutXp({
+    durationMin: plan.durationMin,
+    completedSets: doneCount,
+    totalSets,
+    completed: allDone,
+  });
 
   const handleFinish = () => {
     setPhase('finished');
