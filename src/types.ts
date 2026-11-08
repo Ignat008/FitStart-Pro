@@ -48,11 +48,31 @@ export interface WeightedSelection {
   id: string;
   name: string;
   equipment: Equipment;
-  reps: string;
+  reps: number;
+  repsUnit?: 'reps' | 'sec';
   sets: number;
   weightKg: number;
   restSec: number;
   cue: string;
+}
+
+/** Відмінювання числівників в українській мові: 1 підхід, 2 підходи, 5 підходів. */
+export function pluralizeUk(n: number, one: string, few: string, many: string): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+  return many;
+}
+
+/** "3 підходи × 10 повторень" або "3 підходи × 30с" — для виводу у плані тренування. */
+export function formatPrescription(sets: number, reps: number, unit: 'reps' | 'sec' = 'reps'): string {
+  const setsLabel = pluralizeUk(sets, 'підхід', 'підходи', 'підходів');
+  if (unit === 'sec') {
+    return `${sets} ${setsLabel} × ${reps}с`;
+  }
+  const repsLabel = pluralizeUk(reps, 'повторення', 'повторення', 'повторень');
+  return `${sets} ${setsLabel} × ${reps} ${repsLabel}`;
 }
 
 export interface SessionInput {

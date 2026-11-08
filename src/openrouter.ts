@@ -1,4 +1,5 @@
 import type { SessionInput, WorkoutPlan, Round, Exercise, Phase, WeightedSelection } from './types';
+import { formatPrescription } from './types';
 import { generateFallbackWorkout } from './fallbackEngine';
 
 const DEFAULT_MODEL = 'nvidia/nemotron-3.5-super-vl:free';
@@ -57,7 +58,7 @@ function buildPrompt(input: SessionInput): string {
   const isHardcore = input.barrier === 'challenge';
 
   const weightedSection = input.weightedExercises?.length
-    ? `\n  - Користувач обрав вправи з вільними вагами (додай їх окремим раундом \"Власні вправи з інвентарем\"):\n${input.weightedExercises.map((w) => `    · ${w.name} — ${w.sets}×${w.reps}, ${w.weightKg} кг (${w.equipment})`).join('\n')}\n`
+    ? `\n  - Користувач обрав вправи з вільними вагами (додай їх окремим раундом "Власні вправи з інвентарем"):\n${input.weightedExercises.map((w) => `    · ${w.name} — ${formatPrescription(w.sets, w.reps, w.repsUnit)}, ${w.weightKg} кг (${w.equipment})`).join('\n')}\n`
     : '';
 
   return `Ти — професійний спортивний тренер-мотиватор для підлітків, який створює безпечні, але потужні тренування.
@@ -239,8 +240,7 @@ export async function testConnection(apiKey: string, model: string): Promise<Tes
     });
 
     if (res.ok) {
-      const data = await res.json().catch(() => null);
-      const content = data?.choices?.[0]?.message?.content as string | undefined;
+      await res.json().catch(() => null);
       const label = MODEL_OPTIONS.find((m) => m.id === model)?.label ?? model;
       return { ok: true, message: `Підключення успішне · ${label}`, modelLabel: label };
     }
@@ -266,7 +266,7 @@ const equipmentLabels: Record<string, string> = {
 function appendWeightedToPlan(plan: WorkoutPlan, weighted: WeightedSelection[]): void {
   const exercises: Exercise[] = weighted.map((w) => ({
     name: w.name,
-    reps: `${w.sets}×${w.reps}`,
+    reps: formatPrescription(w.sets, w.reps, w.repsUnit),
     restSec: w.restSec,
     cue: w.cue,
     equipment: w.equipment,

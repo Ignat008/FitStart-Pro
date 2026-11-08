@@ -21,7 +21,7 @@ import {
   Weight,
   CircleDot,
 } from 'lucide-react';
-import type { WorkoutPlan, Round, Exercise, Equipment } from '@/types';
+import type { WorkoutPlan, Round, Exercise } from '@/types';
 import { formatTime } from '@/useCountdown';
 import { EQUIPMENT_LABELS } from '@/weightedLibrary';
 
@@ -50,7 +50,6 @@ export default function SessionScreen({ plan, source, onComplete, onRestart }: P
   const [currentRoundIndex, setCurrentRoundIndex] = useState(0);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [activeTimer, setActiveTimer] = useState<ActiveTimerKind>('none');
-  const [timerSeconds, setTimerSeconds] = useState(0);
   const [phase, setPhase] = useState<'ready' | 'active' | 'finished'>('ready');
 
   const totalSets = allExercises.length;
@@ -97,8 +96,6 @@ export default function SessionScreen({ plan, source, onComplete, onRestart }: P
       setCurrentExerciseIndex={setCurrentExerciseIndex}
       activeTimer={activeTimer}
       setActiveTimer={setActiveTimer}
-      timerSeconds={timerSeconds}
-      setTimerSeconds={setTimerSeconds}
       doneCount={doneCount}
       totalSets={totalSets}
       progress={progress}
@@ -182,8 +179,6 @@ interface ActiveSessionProps {
   setCurrentExerciseIndex: React.Dispatch<React.SetStateAction<number>>;
   activeTimer: ActiveTimerKind;
   setActiveTimer: React.Dispatch<React.SetStateAction<ActiveTimerKind>>;
-  timerSeconds: number;
-  setTimerSeconds: React.Dispatch<React.SetStateAction<number>>;
   doneCount: number;
   totalSets: number;
   progress: number;
@@ -206,8 +201,6 @@ function ActiveSession({
   setCurrentExerciseIndex,
   activeTimer,
   setActiveTimer,
-  timerSeconds,
-  setTimerSeconds,
   doneCount,
   totalSets,
   progress,
@@ -298,7 +291,6 @@ function ActiveSession({
 
   function beginPhase(kind: ActiveTimerKind, sec: number) {
     setIsPaused(false);
-    setTimerSeconds(sec);
     setRemaining(sec);
     setActiveTimer(kind);
   }

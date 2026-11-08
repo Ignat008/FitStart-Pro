@@ -9,6 +9,7 @@ import type {
   Phase,
   WeightedSelection,
 } from './types';
+import { formatPrescription } from './types';
 
 const multipliers: Record<Level, { reps: number; sets: number; rest: number }> = {
   beginner: { reps: 0.7, sets: 0.75, rest: 1.4 },
@@ -213,7 +214,7 @@ function appendWeightedRound(rounds: Round[], weighted?: WeightedSelection[]): v
 
   const exercises: Exercise[] = weighted.map((w) => ({
     name: w.name,
-    reps: `${w.sets}×${w.reps}`,
+    reps: formatPrescription(w.sets, w.reps, w.repsUnit),
     restSec: w.restSec,
     cue: w.cue,
     equipment: w.equipment,

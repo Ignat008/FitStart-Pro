@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   Dumbbell,
   Hexagon,
@@ -16,14 +16,14 @@ import {
   X,
   Check,
   Weight,
-  Trash2,
   Filter,
+  Minus,
+  Edit2,
 } from 'lucide-react';
 import type { MuscleGroup, Barrier, Level, SessionInput, WeightedSelection, Equipment } from '@/types';
 import { MUSCLE_LABELS, BARRIER_LABELS, LEVEL_LABELS } from '@/types';
 import {
   EQUIPMENT_LABELS,
-  WEIGHTED_LIBRARY,
   filterByEquipment,
   type WeightedExercise,
 } from '@/weightedLibrary';
@@ -60,11 +60,13 @@ interface SelectedExercise {
   baseId: string;
   name: string;
   equipment: Equipment;
-  reps: string;
+  reps: number;
+  repsUnit: 'reps' | 'sec';
   sets: number;
   weightKg: number;
   restSec: number;
   cue: string;
+  isEditing?: boolean;
 }
 
 export default function SetupScreen({ onGenerate, onOpenSettings, hasApiKey, loading }: Props) {
@@ -82,6 +84,7 @@ export default function SetupScreen({ onGenerate, onOpenSettings, hasApiKey, loa
   const [customReps, setCustomReps] = useState('10');
   const [customSets, setCustomSets] = useState('3');
   const [customEquip, setCustomEquip] = useState<Equipment>('dumbbell');
+  const [customUnit, setCustomUnit] = useState<'reps' | 'sec'>('reps');
 
   const filteredLibrary: WeightedExercise[] = selectedEquipment
     ? filterByEquipment(selectedEquipment).filter(
@@ -89,24 +92,25 @@ export default function SetupScreen({ onGenerate, onOpenSettings, hasApiKey, loa
       )
     : [];
 
-  const handleAddFromLibrary = (ex: WeightedExercise) => {
-    const id = `lib-${ex.id}-${selectedExercises.length}`;
+  const handleAddFromLibrary = useCallback((ex: WeightedExercise) => {
     setSelectedExercises((prev) => [
       ...prev,
       {
-        baseId: id,
+        baseId: `lib-${ex.id}-${Date.now()}-${prev.length}`,
         name: ex.name,
         equipment: ex.equipment,
         reps: ex.defaultReps,
+        repsUnit: ex.defaultRepsUnit ?? 'reps',
         sets: ex.defaultSets,
         weightKg: ex.defaultWeightKg,
         restSec: ex.restSec,
         cue: ex.cue,
+        isEditing: false,
       },
     ]);
-  };
+  }, []);
 
-  const handleAddCustom = () => {
+  const handleAddCustom = useCallback(() => {
     if (!customName.trim()) return;
     const id = `custom-${Date.now()}`;
     setSelectedExercises((prev) => [
@@ -115,11 +119,13 @@ export default function SetupScreen({ onGenerate, onOpenSettings, hasApiKey, loa
         baseId: id,
         name: customName.trim(),
         equipment: customEquip,
-        reps: `${customReps || '10'} повторень`,
+        reps: parseInt(customReps) || 10,
+        repsUnit: customUnit,
         sets: parseInt(customSets) || 3,
         weightKg: parseFloat(customWeight) || 0,
         restSec: 45,
         cue: 'Контроль техніки, рівне дихання',
+        isEditing: false,
       },
     ]);
     setCustomName('');
@@ -127,25 +133,51 @@ export default function SetupScreen({ onGenerate, onOpenSettings, hasApiKey, loa
     setCustomReps('10');
     setCustomSets('3');
     setShowAddForm(false);
-  };
+  }, [customName, customWeight, customReps, customSets, customEquip, customUnit]);
 
-  const handleRemoveExercise = (id: string) => {
+  const handleRemoveExercise = useCallback((id: string) => {
     setSelectedExercises((prev) => prev.filter((e) => e.baseId !== id));
-  };
+  }, []);
 
-  const handleUpdateWeight = (id: string, delta: number) => {
+  const handleUpdateWeight = useCallback((id: string, delta: number) => {
     setSelectedExercises((prev) =>
       prev.map((e) => (e.baseId === id ? { ...e, weightKg: Math.max(0, +(e.weightKg + delta).toFixed(1)) } : e)),
     );
-  };
+  }, []);
 
-  const handleUpdateSets = (id: string, delta: number) => {
+  const handleUpdateSets = useCallback((id: string, delta: number) => {
     setSelectedExercises((prev) =>
       prev.map((e) => (e.baseId === id ? { ...e, sets: Math.max(1, Math.min(10, e.sets + delta)) } : e)),
     );
-  };
+  }, []);
 
-  const handleGenerate = () => {
+  const handleUpdateReps = useCallback((id: string, delta: number) => {
+    setSelectedExercises((prev) =>
+      prev.map((e) => (e.baseId === id ? { ...e, reps: Math.max(1, Math.min(50, e.reps + delta)) } : e)),
+    );
+  }, []);
+
+  const handleSetReps = useCallback((id: string, value: number) => {
+    setSelectedExercises((prev) =>
+      prev.map((e) => (e.baseId === id ? { ...e, reps: Math.max(1, Math.min(50, value)) } : e)),
+    );
+  }, []);
+
+  const handleToggleEdit = useCallback((id: string) => {
+    setSelectedExercises((prev) =>
+      prev.map((e) => (e.baseId === id ? { ...e, isEditing: !e.isEditing } : e)),
+    );
+  }, []);
+
+  const handleToggleUnit = useCallback((id: string) => {
+    setSelectedExercises((prev) =>
+      prev.map((e) =>
+        e.baseId === id ? { ...e, repsUnit: e.repsUnit === 'sec' ? 'reps' : 'sec', reps: e.repsUnit === 'sec' ? 10 : 30 } : e,
+      ),
+    );
+  }, []);
+
+  const handleGenerate = useCallback(() => {
     if (!muscle || !level) {
       setShowError(true);
       return;
@@ -158,6 +190,7 @@ export default function SetupScreen({ onGenerate, onOpenSettings, hasApiKey, loa
             name: e.name,
             equipment: e.equipment,
             reps: e.reps,
+            repsUnit: e.repsUnit,
             sets: e.sets,
             weightKg: e.weightKg,
             restSec: e.restSec,
@@ -165,7 +198,7 @@ export default function SetupScreen({ onGenerate, onOpenSettings, hasApiKey, loa
           }))
         : undefined;
     onGenerate({ muscle: muscle!, level: level!, barrier: barrier ?? 'challenge', weightedExercises: weighted });
-  };
+  }, [muscle, level, barrier, selectedExercises, onGenerate]);
 
   return (
     <div className="min-h-screen grid-bg relative overflow-hidden">
@@ -465,14 +498,28 @@ export default function SetupScreen({ onGenerate, onOpenSettings, hasApiKey, loa
                       </div>
                       <div>
                         <label className="text-[10px] uppercase tracking-widest text-cyber-muted block mb-1">
-                          Повт.
+                          {customUnit === 'sec' ? 'Час (с)' : 'Повт.'}
                         </label>
-                        <input
-                          type="number"
-                          value={customReps}
-                          onChange={(e) => setCustomReps(e.target.value)}
-                          className="w-full px-2 py-2 rounded-lg bg-cyber-bg border border-cyber-border text-sm text-center focus:border-neon-blue/50 outline-none"
-                        />
+                        <div className="flex gap-1">
+                          <input
+                            type="number"
+                            value={customReps}
+                            onChange={(e) => setCustomReps(e.target.value)}
+                            className="w-full min-w-0 px-1 py-2 rounded-lg bg-cyber-bg border border-cyber-border text-sm text-center focus:border-neon-blue/50 outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = customUnit === 'sec' ? 'reps' : 'sec';
+                              setCustomUnit(next);
+                              setCustomReps(next === 'sec' ? '30' : '10');
+                            }}
+                            className="shrink-0 px-1.5 rounded-lg border border-neon-blue/40 bg-neon-blue/10 text-[10px] font-semibold text-neon-blue hover:bg-neon-blue/20 transition-all"
+                            title="Перемкнути: повторення / час"
+                          >
+                            {customUnit === 'sec' ? 'сек' : 'повт'}
+                          </button>
+                        </div>
                       </div>
                       <div>
                         <label className="text-[10px] uppercase tracking-widest text-cyber-muted block mb-1">
@@ -512,7 +559,7 @@ export default function SetupScreen({ onGenerate, onOpenSettings, hasApiKey, loa
                   </p>
                 ) : (
                   filteredLibrary.map((ex) => {
-                    const alreadyAdded = selectedExercises.some((s) => s.baseId === `lib-${ex.id}-${selectedExercises.length}` && s.name === ex.name);
+                    const addedCount = selectedExercises.filter((s) => s.name === ex.name).length;
                     return (
                       <div
                         key={ex.id}
@@ -523,17 +570,27 @@ export default function SetupScreen({ onGenerate, onOpenSettings, hasApiKey, loa
                           <div className="flex items-center gap-2 mt-1 text-[11px] text-cyber-muted flex-wrap">
                             <span className="text-neon-amber">{ex.defaultWeightKg} кг</span>
                             <span>·</span>
-                            <span>{ex.defaultSets}×{ex.defaultReps}</span>
+                            <span>{ex.defaultSets}×{ex.defaultReps} {ex.defaultRepsUnit === 'sec' ? 'с' : 'повтор.'}</span>
                             <span>·</span>
                             <span>{MUSCLE_LABELS[ex.muscleGroup].title}</span>
+                            {addedCount > 0 && (
+                              <span className="text-neon-green font-semibold">
+                                · додано{addedCount > 1 ? ` ×${addedCount}` : ''}
+                              </span>
+                            )}
                           </div>
                         </div>
                         <button
                           onClick={() => handleAddFromLibrary(ex)}
-                          className="shrink-0 w-8 h-8 rounded-lg border border-neon-amber/40 bg-neon-amber/5 text-neon-amber hover:bg-neon-amber/20 flex items-center justify-center transition-all"
+                          className={`shrink-0 w-8 h-8 rounded-lg border flex items-center justify-center transition-all ${
+                            addedCount > 0
+                              ? 'border-neon-green/40 bg-neon-green/10 text-neon-green hover:bg-neon-green/20'
+                              : 'border-neon-amber/40 bg-neon-amber/5 text-neon-amber hover:bg-neon-amber/20'
+                          }`}
                           aria-label="Додати вправу"
+                          title={addedCount > 0 ? 'Додати ще раз' : 'Додати вправу'}
                         >
-                          <Plus size={16} />
+                          {addedCount > 0 ? <Check size={16} /> : <Plus size={16} />}
                         </button>
                       </div>
                     );
@@ -554,10 +611,15 @@ export default function SetupScreen({ onGenerate, onOpenSettings, hasApiKey, loa
               <div className="space-y-2">
                 {selectedExercises.map((ex) => {
                   const Icon = equipmentIcons[ex.equipment];
+                  const isEditing = ex.isEditing;
                   return (
                     <div
                       key={ex.baseId}
-                      className="flex items-center gap-3 p-3 rounded-xl border border-neon-amber/20 bg-neon-amber/5"
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                        isEditing
+                          ? 'border-neon-blue/40 bg-neon-blue/5 ring-1 ring-neon-blue/20'
+                          : 'border-neon-amber/20 bg-neon-amber/5'
+                      }`}
                     >
                       <div className="w-8 h-8 rounded-lg bg-neon-amber/15 text-neon-amber flex items-center justify-center shrink-0">
                         <Icon size={16} />
@@ -566,44 +628,102 @@ export default function SetupScreen({ onGenerate, onOpenSettings, hasApiKey, loa
                         <h5 className="font-semibold text-sm truncate">{ex.name}</h5>
                         <p className="text-[11px] text-cyber-muted">{EQUIPMENT_LABELS[ex.equipment].title}</p>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-cyber-muted uppercase">кг</span>
+                      <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                        {/* Weight */}
+                        <div className="flex items-center gap-1 bg-cyber-bg/50 rounded-lg px-2 py-1 border border-cyber-border/50">
+                          <span className="text-[9px] text-cyber-muted uppercase tracking-wider">кг</span>
                           <button
                             onClick={() => handleUpdateWeight(ex.baseId, -2.5)}
-                            className="w-6 h-6 rounded-md border border-cyber-border text-cyber-muted hover:text-neon-amber hover:border-neon-amber/40 flex items-center justify-center transition-all text-xs"
+                            className="w-7 h-7 rounded border border-cyber-border text-cyber-muted hover:text-neon-amber hover:border-neon-amber/40 flex items-center justify-center transition-all text-xs"
+                            aria-label="Зменшити вагу"
                           >
-                            -
+                            <Minus size={14} />
                           </button>
                           <span className="text-sm font-mono font-bold text-neon-amber tabular-nums w-10 text-center">
                             {ex.weightKg}
                           </span>
                           <button
                             onClick={() => handleUpdateWeight(ex.baseId, 2.5)}
-                            className="w-6 h-6 rounded-md border border-cyber-border text-cyber-muted hover:text-neon-amber hover:border-neon-amber/40 flex items-center justify-center transition-all text-xs"
+                            className="w-7 h-7 rounded border border-cyber-border text-cyber-muted hover:text-neon-amber hover:border-neon-amber/40 flex items-center justify-center transition-all text-xs"
+                            aria-label="Збільшити вагу"
                           >
-                            +
+                            <Plus size={14} />
                           </button>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-cyber-muted uppercase">сети</span>
+                        {/* Sets */}
+                        <div className="flex items-center gap-1 bg-cyber-bg/50 rounded-lg px-2 py-1 border border-cyber-border/50">
+                          <span className="text-[9px] text-cyber-muted uppercase tracking-wider">сети</span>
                           <button
                             onClick={() => handleUpdateSets(ex.baseId, -1)}
-                            className="w-6 h-6 rounded-md border border-cyber-border text-cyber-muted hover:text-neon-amber hover:border-neon-amber/40 flex items-center justify-center transition-all text-xs"
+                            className="w-7 h-7 rounded border border-cyber-border text-cyber-muted hover:text-neon-amber hover:border-neon-amber/40 flex items-center justify-center transition-all text-xs"
+                            aria-label="Зменшити підходи"
                           >
-                            -
+                            <Minus size={14} />
                           </button>
                           <span className="text-sm font-mono font-bold tabular-nums w-6 text-center">{ex.sets}</span>
                           <button
                             onClick={() => handleUpdateSets(ex.baseId, 1)}
-                            className="w-6 h-6 rounded-md border border-cyber-border text-cyber-muted hover:text-neon-amber hover:border-neon-amber/40 flex items-center justify-center transition-all text-xs"
+                            className="w-7 h-7 rounded border border-cyber-border text-cyber-muted hover:text-neon-amber hover:border-neon-amber/40 flex items-center justify-center transition-all text-xs"
+                            aria-label="Збільшити підходи"
                           >
-                            +
+                            <Plus size={14} />
                           </button>
                         </div>
+                        {/* Reps / Time */}
+                        {isEditing ? (
+                          <div className="flex items-center gap-1 bg-cyber-bg/50 rounded-lg px-2 py-1 border border-neon-blue/40">
+                            <button
+                              onClick={() => handleToggleUnit(ex.baseId)}
+                              className="text-[9px] text-neon-blue uppercase tracking-wider hover:underline"
+                              title="Перемкнути: повторення / час"
+                            >
+                              {ex.repsUnit === 'sec' ? 'сек' : 'повт'}
+                            </button>
+                            <button
+                              onClick={() => handleUpdateReps(ex.baseId, ex.repsUnit === 'sec' ? -5 : -1)}
+                              className="w-7 h-7 rounded border border-neon-blue/40 text-neon-blue hover:bg-neon-blue/10 flex items-center justify-center transition-all text-xs"
+                              aria-label="Зменшити"
+                            >
+                              <Minus size={14} />
+                            </button>
+                            <input
+                              type="number"
+                              value={ex.reps}
+                              onChange={(e) => handleSetReps(ex.baseId, parseInt(e.target.value) || 1)}
+                              onBlur={() => handleToggleEdit(ex.baseId)}
+                              onKeyDown={(e) => e.key === 'Enter' && handleToggleEdit(ex.baseId)}
+                              className="w-12 text-center text-sm font-mono font-bold bg-transparent border-none outline-none text-neon-blue"
+                              min="1"
+                              max={ex.repsUnit === 'sec' ? 600 : 50}
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => handleUpdateReps(ex.baseId, ex.repsUnit === 'sec' ? 5 : 1)}
+                              className="w-7 h-7 rounded border border-neon-blue/40 text-neon-blue hover:bg-neon-blue/10 flex items-center justify-center transition-all text-xs"
+                              aria-label="Збільшити"
+                            >
+                              <Plus size={14} />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleToggleEdit(ex.baseId)}
+                            className="flex items-center gap-1 bg-cyber-bg/50 rounded-lg px-2 py-1 border border-cyber-border/50 hover:border-neon-blue/40 hover:bg-neon-blue/5 transition-all"
+                            aria-label="Редагувати кількість або час"
+                          >
+                            <span className="text-[9px] text-cyber-muted uppercase tracking-wider">
+                              {ex.repsUnit === 'sec' ? 'сек' : 'повт'}
+                            </span>
+                            <span className="text-sm font-mono font-bold text-neon-amber tabular-nums w-8 text-center">
+                              {ex.reps}
+                            </span>
+                            <Edit2 size={12} className="text-cyber-muted hover:text-neon-blue transition-colors" />
+                          </button>
+                        )}
+                        {/* Delete */}
                         <button
                           onClick={() => handleRemoveExercise(ex.baseId)}
-                          className="w-7 h-7 rounded-lg border border-neon-red/30 text-neon-red/70 hover:bg-neon-red/10 hover:text-neon-red flex items-center justify-center transition-all shrink-0"
+                          className="w-8 h-8 rounded-lg border border-neon-red/30 text-neon-red/70 hover:bg-neon-red/10 hover:text-neon-red flex items-center justify-center transition-all shrink-0"
                           aria-label="Видалити вправу"
                         >
                           <X size={14} />
