@@ -25,6 +25,7 @@ import type { WorkoutPlan, Round, Exercise } from '@/types';
 import { pluralizeUk } from '@/types';
 import { formatTime } from '@/useCountdown';
 import { EQUIPMENT_LABELS } from '@/weightedLibrary';
+import { ExerciseInstruction } from '@/components/ExerciseInstruction';
 
 interface Props {
   plan: WorkoutPlan;
@@ -655,6 +656,13 @@ function ActiveSession({
                 <p className="text-sm font-bold text-cyber-text truncate">{currentExercise.name}</p>
                 <p className="text-xs text-cyber-muted mt-0.5">{currentExercise.reps}</p>
               </div>
+            )}
+
+            {currentExercise?.instructions && currentExercise.instructions.length > 0 && (
+              <ExerciseInstruction
+                instructions={currentExercise.instructions}
+                className="mb-3"
+              />
             )}
 
             <div className="relative">

@@ -220,6 +220,7 @@ function appendWeightedRound(rounds: Round[], weighted?: WeightedSelection[]): v
     equipment: w.equipment,
     weightKg: w.weightKg,
     sets: w.sets,
+    instructions: w.instructions,
   }));
 
   rounds.push({

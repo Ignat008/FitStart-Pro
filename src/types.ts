@@ -15,6 +15,13 @@ export type Phase =
 
 export type Equipment = 'kettlebell' | 'dumbbell' | 'barbell';
 
+export type InstructionType = 'setup' | 'movement' | 'breathing' | 'safety';
+
+export interface Instruction {
+  type: InstructionType;
+  text: string;
+}
+
 export interface Exercise {
   name: string;
   reps: string; // "8-10" або "30с"
@@ -23,6 +30,7 @@ export interface Exercise {
   equipment?: Equipment; // тип інвентарю для вправ з вагами
   weightKg?: number; // робоча вага у кілограмах
   sets?: number; // кількість підходів
+  instructions?: Instruction[]; // покрокова техніка виконання
 }
 
 export interface Round {
@@ -54,6 +62,7 @@ export interface WeightedSelection {
   weightKg: number;
   restSec: number;
   cue: string;
+  instructions?: Instruction[];
 }
 
 /** Відмінювання числівників в українській мові: 1 підхід, 2 підходи, 5 підходів. */

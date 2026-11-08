@@ -1,5 +1,12 @@
 export type Equipment = 'kettlebell' | 'dumbbell' | 'barbell';
 
+export type InstructionType = 'setup' | 'movement' | 'breathing' | 'safety';
+
+export interface Instruction {
+  type: InstructionType;
+  text: string;
+}
+
 export interface WeightedExercise {
   id: string;
   name: string;
@@ -11,6 +18,7 @@ export interface WeightedExercise {
   defaultWeightKg: number;
   restSec: number;
   cue: string;
+  instructions?: Instruction[];
 }
 
 export const EQUIPMENT_LABELS: Record<Equipment, { title: string; sub: string; icon: string }> = {
@@ -31,6 +39,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 16,
     restSec: 40,
     cue: 'Вибух у тазу, не руками. Спина пряма',
+    instructions: [
+      { type: 'setup', text: 'Станьте рівно, стопи на ширині плеч, пальці ног вивернені назовні. Тримайте гирю двома руками між ногами.' },
+      { type: 'movement', text: 'Згніть коліна, відійдіть тазом назад, потім ви شنовими рухом підніміть гирю до рівня плеч на височуванні ягодиць і пресу.' },
+      { type: 'breathing', text: 'Видихайте сильно під час підйома гирі вгору, вдихайте при опусканні назад між ноги.' },
+      { type: 'safety', text: 'Спина має залишатися прямою всередині, не вигинайте поясницю. Рух робить таз і ноги, а не руки.' },
+    ],
   },
   {
     id: 'kb-goblet',
@@ -42,6 +56,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 20,
     restSec: 45,
     cue: 'Гирю тримай біля грудей, лікті всередину',
+    instructions: [
+      { type: 'setup', text: 'Тримайте гирю за ручку двома руками біля грудей, лікті прижаті до тіла, стопи на ширині плеч.' },
+      { type: 'movement', text: 'Згніть коліна і відійдіть тазом назад, якби сідаєте на стілець. Спускайтеся, поки бедра не стануть паралельно підлозі, потім поверніться вгору.' },
+      { type: 'breathing', text: 'Вдихайте під часопуску, видихайте при підйомі вгору.' },
+      { type: 'safety', text: 'Коління не виходять за носки стоп, спина пряма, вага ваги на пʼятках.' },
+    ],
   },
   {
     id: 'kb-press',
@@ -53,6 +73,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 16,
     restSec: 50,
     cue: 'Жим по прямій лінії, кора напружена',
+    instructions: [
+      { type: 'setup', text: 'Тримайте гирю на рівні плеча, дивань порожній, кора напружена, стопи на ширині плеч.' },
+      { type: 'movement', text: 'Жміть гиру вгору по прямій лінії, поки braccio не стане повністю розтягнутим над головою. Мінімізуйте проги в поясниці.' },
+      { type: 'breathing', text: 'Вдихайте перед жимом, видихайте при натисканні гирі вгору.' },
+      { type: 'safety', text: 'Не розгинайте локоть поosticі. Тримайте корпус стабільним, не піднімайте плече до вуха.' },
+    ],
   },
   {
     id: 'kb-turkish',
@@ -64,6 +90,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 12,
     restSec: 60,
     cue: 'Повільно, контроль на кожному етапі',
+    instructions: [
+      { type: 'setup', text: 'Ляжте на спину, тримайте гирю однією рукою прямо вгору над плечем. Друга рука лежить на підлозі.' },
+      { type: 'movement', text: 'Повільно підніміться на ліктю, потім на пряму руку, поставте коліно під корпус і встаньте. Повторіть у зворотному порядку.' },
+      { type: 'breathing', text: 'Дихання рівне і контролюване на кожному етапі переходів.' },
+      { type: 'safety', text: 'Не поспішайте. Гиря завжди повинна бути строго над плечом. Виконуйте без ваги, поки не усвоїте техніку.' },
+    ],
   },
   {
     id: 'kb-clean',
@@ -75,6 +107,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 16,
     restSec: 45,
     cue: 'Прийом у rack-позицію м’яко, без удару',
+    instructions: [
+      { type: 'setup', text: 'Тримайте гирю між ногами, спина пряма, таз відірений назад.' },
+      { type: 'movement', text: 'Ви شنовитеся та піднімаєте гирю вгору, обертаючи кисть так, щоб гиря опустилася на передпліччя (rack-позиція).' },
+      { type: 'breathing', text: 'Вдихайте під час підготовки, видихайте при прийомі гирі на плече.' },
+      { type: 'safety', text: 'Не дозволяйте гирі ударятися про передпліччя. Контролюйте опускання.' },
+    ],
   },
   {
     id: 'kb-snatch',
@@ -86,6 +124,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 12,
     restSec: 50,
     cue: 'Єдиний рух, блокуй ліктю наверху',
+    instructions: [
+      { type: 'setup', text: 'Тримайте гирю між ногами, хват однією рукою, спина пряма.' },
+      { type: 'movement', text: 'Ви شنовитеся та однією яскравим рухом піднімаєте гирю вгору над головою, блокуючи ліктю в верхній точці.' },
+      { type: 'breathing', text: 'Видихайте при підйомі гирі вгору, вдихайте при опусканні.' },
+      { type: 'safety', text: 'Не вигинайте спину. Контролюйте гирю на весь шлях опускання.' },
+    ],
   },
   {
     id: 'kb-windmill',
@@ -97,6 +141,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 8,
     restSec: 45,
     cue: 'Погляд на гирю, таз відходить назад',
+    instructions: [
+      { type: 'setup', text: 'Тримайте гирю однією рукою вгору над плечем, ноги на ширині плеч.' },
+      { type: 'movement', text: 'Наклоніться в бік, опускаючи вільну руку до підлози, спина пряма, погляд на гирю. Поверніться назад вгору.' },
+      { type: 'breathing', text: 'Вдихайте при нахилі, видихайте при повертанні вгору.' },
+      { type: 'safety', text: 'Не вигинайте спину. Рух повільний і контролюваний.' },
+    ],
   },
   {
     id: 'kb-figure8',
@@ -108,6 +158,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 12,
     restSec: 40,
     cue: 'Передача між ногами, кора стабільна',
+    instructions: [
+      { type: 'setup', text: 'Згніть коліна, тримайте спину прямо, гирю у одній руці між ногами.' },
+      { type: 'movement', text: 'Передавайте гирю між ногами з руки в руку, формуючи вісімку.' },
+      { type: 'breathing', text: 'Дихання рівне і ритмічне.' },
+      { type: 'safety', text: 'Спина пряма, не прогибайте поясницю.' },
+    ],
   },
   {
     id: 'kb-halo',
@@ -119,6 +175,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 12,
     restSec: 35,
     cue: 'Круг навколо голови, плечі розслаблені',
+    instructions: [
+      { type: 'setup', text: 'Тримайте гирю двома руками біля грудей, плечі розслаблені.' },
+      { type: 'movement', text: 'Проводьте гирю кругом навколо голови в одному напрямку, потім змініть напрямок.' },
+      { type: 'breathing', text: 'Вдихайте на половині кругу, видихайте на другу половину.' },
+      { type: 'safety', text: 'Не нахиляйте голову. Рух лише в плечах і верхніх кінцівках.' },
+    ],
   },
   {
     id: 'kb-lunge',
@@ -130,6 +192,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 16,
     restSec: 40,
     cue: 'Крок вперед, коліно до 90 градусів',
+    instructions: [
+      { type: 'setup', text: 'Тримайте гирю двома руками біля грудей, станьте рівно.' },
+      { type: 'movement', text: 'Зробіть крок вперед однією ногою, згніть обидва коліна до 90 градусів, потім поверніться до початкового положення.' },
+      { type: 'breathing', text: 'Вдихайте при кроці вперед, видихайте при поверненні.' },
+      { type: 'safety', text: 'Переднє коліно не виходить за носок стопи. Спина пряма.' },
+    ],
   },
   {
     id: 'kb-farmers',
@@ -142,8 +210,13 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 20,
     restSec: 45,
     cue: 'Постава рівна, кора напружена, дихай рівно',
+    instructions: [
+      { type: 'setup', text: 'Тримайте гирю в кожній руці біля станка, плечі вниз і назад.' },
+      { type: 'movement', text: 'Ідіть вперед рівним кроком, тримаючи корпус стабільним і плечі розвернуті.' },
+      { type: 'breathing', text: 'Дихання рівне і глибоке на весь час ходи.' },
+      { type: 'safety', text: 'Не перехилюйте список. Тримайте ваги не 들�ько від тіла.' },
+    ],
   },
-  // DUMBBELL
   {
     id: 'db-bench',
     name: 'Жим гантелей лежачи (Dumbbell Press)',
@@ -154,6 +227,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 12,
     restSec: 50,
     cue: 'Лікті під 45°, контрольне опускання',
+    instructions: [
+      { type: 'setup', text: 'Ляжте на лавку на спині, стопи на підлозі. Тримайте гантелі на рівні грудей, ладоні вперед.' },
+      { type: 'movement', text: 'Натискайте гантелі вгору, поки руки не стануть простими, але не розгинайте локті до кінця. Медленно опустіть назад.' },
+      { type: 'breathing', text: 'Вдихайте при опусканні гантелей, видихайте при натисканні вгору.' },
+      { type: 'safety', text: 'Лікті під約 45° до тіла, не розвівши їх занадто в бік. Контролюйте опускання.' },
+    ],
   },
   {
     id: 'db-row',
@@ -165,6 +244,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 14,
     restSec: 45,
     cue: 'Зводь лопатку, тягни до поясу',
+    instructions: [
+      { type: 'setup', text: 'Станьте поруч із лавки, одна коліно і рука опіраються про неї. Друга рука тримає гантелю.' },
+      { type: 'movement', text: 'Потягніть гантелю до поясу, зводячи лопатку до хребта. Повільно опустіть назад.' },
+      { type: 'breathing', text: 'Вдихайте при опусканні, видихайте при підтягуванні.' },
+      { type: 'safety', text: 'Спина пряма, не вигинайте поясницю. Рух у локті, а не у плечі.' },
+    ],
   },
   {
     id: 'db-shoulder',
@@ -176,6 +261,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 10,
     restSec: 45,
     cue: 'Оберт долонь у верхній точці',
+    instructions: [
+      { type: 'setup', text: 'Сідьте або станьте, тримайте гантелі на рівні плеч, ладоні до себе.' },
+      { type: 'movement', text: 'Жміть гантелі вгору, обертаючи кисті так, щоб у верхній точці ладоні були вперед.' },
+      { type: 'breathing', text: 'Вдихайте внизу, видихайте при жимі вгору.' },
+      { type: 'safety', text: 'Не прогинайте поясницю. Рух контролюваний, без гальмування.' },
+    ],
   },
   {
     id: 'db-goblet',
@@ -187,6 +278,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 10,
     restSec: 50,
     cue: 'Переднє коліно над стопою, вертикально',
+    instructions: [
+      { type: 'setup', text: 'Одна нога вперед, друга на лавці або поблизу за спиною. Тримайте гантелі по боках.' },
+      { type: 'movement', text: 'Згніть переднє коліно і опустіть заднє коліно до підлоги. Поверніться вгору.' },
+      { type: 'breathing', text: 'Вдихайте при опусканні, видихайте при підйомі.' },
+      { type: 'safety', text: 'Переднє коліно не виходить за носок стопи. Туловище вертикальне.' },
+    ],
   },
   {
     id: 'db-curl',
@@ -198,6 +295,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 8,
     restSec: 40,
     cue: 'Лікті прижаті, без розгойдування',
+    instructions: [
+      { type: 'setup', text: 'Стойте рівно, тримайте гантелі по боках, ладоні вперед, лікті прижаті до тіла.' },
+      { type: 'movement', text: 'Згніть локті, піднімаючи гантелі до плеч. Повільно опустіть назад.' },
+      { type: 'breathing', text: 'Вдихайте при опусканні, видихайте при підйомі.' },
+      { type: 'safety', text: 'Не розгойдуйте тілом. Рух лише в локтях.' },
+    ],
   },
   {
     id: 'db-russian',
@@ -209,6 +312,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 6,
     restSec: 35,
     cue: 'Спина пряма, оберт від пояса',
+    instructions: [
+      { type: 'setup', text: 'Сідьте на підлогу, коліна згнуті, стопи на підлозі. Тримайте гантелю двома руками.' },
+      { type: 'movement', text: 'Відхиліться назад під кутом 45°, підніміть ступні з підлоги. Обертати туловище в бік, опускаючи гантелю до підлози.' },
+      { type: 'breathing', text: 'Видихайте при оберті, вдихайте при поверненні до центру.' },
+      { type: 'safety', text: 'Спина пряма, не крутиться в поясниці. Рух від кору, а не від плечей.' },
+    ],
   },
   {
     id: 'db-fly',
@@ -220,6 +329,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 8,
     restSec: 45,
     cue: 'Лікті злегка згинуті, розведення в бік',
+    instructions: [
+      { type: 'setup', text: 'Ляжте на лавку на спині, гантелі над грудями, лапоні один до одного.' },
+      { type: 'movement', text: 'Медленно розведіть руки в бік з легким згинанням у локтях, потім зведіть назад над грудями.' },
+      { type: 'breathing', text: 'Вдихайте при розведенні, видихайте при зведенні.' },
+      { type: 'safety', text: 'Не опускайте руки занадто низько. Контролюйте рух, без кидання ваги.' },
+    ],
   },
   {
     id: 'db-lateral',
@@ -231,6 +346,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 6,
     restSec: 35,
     cue: 'Ліктю вище зап’ястя, не кидай',
+    instructions: [
+      { type: 'setup', text: 'Стойте рівно, гантелі по боках тіла, ладоні до тіла.' },
+      { type: 'movement', text: 'Підніміть руки в бік до рівня плеч, легко згинуючи локті. Повільно опустіть.' },
+      { type: 'breathing', text: 'Вдихайте внизу, видихайте під час підйому.' },
+      { type: 'safety', text: 'Не піднімайте плечі до вух. Рух контролюваний, без інерції.' },
+    ],
   },
   {
     id: 'db-tricep',
@@ -242,6 +363,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 10,
     restSec: 40,
     cue: 'Ліктю при вухах, розгинання вгору',
+    instructions: [
+      { type: 'setup', text: 'Тримайте гантелю двома руками над головою, ладоні вгору, локті при вухах.' },
+      { type: 'movement', text: 'Згніть локті, опускаючи гантелю за голову, потім розгніть руки вгору.' },
+      { type: 'breathing', text: 'Вдихайте при опусканні, видихайте при розгинанні.' },
+      { type: 'safety', text: 'Локті не розводьте в бік. Не нахилюйте голову forward.' },
+    ],
   },
   {
     id: 'db-deadlift',
@@ -253,6 +380,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 20,
     restSec: 50,
     cue: 'Гантелі біля ніг, таз назад, пряма спина',
+    instructions: [
+      { type: 'setup', text: 'Стою рівно, гантелі перед собою, стопи на ширині плеч.' },
+      { type: 'movement', text: 'Згніть коліна і відійдіть тазом назад, опускаючи гантелі біля ног. Поверніться вгору.' },
+      { type: 'breathing', text: 'Вдихайте при опусканні, видихайте при підйомі.' },
+      { type: 'safety', text: 'Спина пряма, не вигинайте поясницю. Вага на п’ятках.' },
+    ],
   },
   {
     id: 'db-thruster',
@@ -264,6 +397,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 10,
     restSec: 55,
     cue: 'Присід + жим одним рухом, вибух',
+    instructions: [
+      { type: 'setup', text: 'Тримайте гантелі на рівні плеч, станьте рівно.' },
+      { type: 'movement', text: 'Виконайте присід, потім ви شنовитеся і жиміть гантелі вгору одним плавним рухом.' },
+      { type: 'breathing', text: 'Вдихайте при присіді, видихайте при жимі вгору.' },
+      { type: 'safety', text: 'Спина пряма, коління не виходять за носки. Контролюйте жим.' },
+    ],
   },
   {
     id: 'db-renegade',
@@ -275,6 +414,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 10,
     restSec: 45,
     cue: 'Планка на гантелях, чергова тяга',
+    instructions: [
+      { type: 'setup', text: 'Прийміть позицію планки, руки на гантелях, тіло в лінії.' },
+      { type: 'movement', text: 'Потягніть одну гантелю до поясу, чергуючи руки, тримаючи тіло стабільним.' },
+      { type: 'breathing', text: 'Видихайте при тязі, вдихайте при поверненні до центру.' },
+      { type: 'safety', text: 'Не обертати таз. Тримайте прес напруженим.' },
+    ],
   },
   {
     id: 'db-zpress',
@@ -286,6 +431,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 8,
     restSec: 50,
     cue: 'Сидячи на підлозі, ноги розведені',
+    instructions: [
+      { type: 'setup', text: 'Сядьте на підлогу, ноги розгорнуті в бік, тримайте гантелі на рівні плеч.' },
+      { type: 'movement', text: 'Жміть гантелі вгору, не відхиляючи туловище назад.' },
+      { type: 'breathing', text: 'Вдихайте внизу, видихайте при жимі.' },
+      { type: 'safety', text: 'Спина пряма, не прогинайте поясницю.' },
+    ],
   },
   {
     id: 'db-farmers',
@@ -298,6 +449,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 16,
     restSec: 45,
     cue: 'Плечі назад, крок контрольований, кора стабільна',
+    instructions: [
+      { type: 'setup', text: 'Тримайте гантелі в кожній руці біля станка, плечі вниз і назад.' },
+      { type: 'movement', text: 'Ідіть вперед рівним кроком, тримаючи корпус стабільним і плечі розвернуті.' },
+      { type: 'breathing', text: 'Дихання рівне і глибоке на весь час ходи.' },
+      { type: 'safety', text: 'Не перехилюйте список. Тримайте ваги не далі від тіла.' },
+    ],
   },
   // BARBELL
   {
@@ -310,6 +467,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 40,
     restSec: 60,
     cue: 'Гриф на трапеціях, вага на п’ятках',
+    instructions: [
+      { type: 'setup', text: 'Поставте гриф на трапеції, стопи на ширині плеч, пальці ног трохи вивернені назовні.' },
+      { type: 'movement', text: 'Згніть коліна і відійдіть тазом назад, якби сідаєте на стілець. Спускайтеся, поки бедра не стануть паралельно підлозі, потім підніміться.' },
+      { type: 'breathing', text: 'Вдихайте перед опусканням, видихайте при підйомі.' },
+      { type: 'safety', text: 'Коління не виходять за носки, спина пряма, вага на п’ятках.' },
+    ],
   },
   {
     id: 'bb-deadlift',
@@ -321,6 +484,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 60,
     restSec: 90,
     cue: 'Пряма спина, таз не випереджає плечі',
+    instructions: [
+      { type: 'setup', text: 'Гриф біля ніг, стопи на ширині плеч, хват позаду або змішаний.' },
+      { type: 'movement', text: 'Згніть коліна і відійдіть тазом назад, тримаючи гриф біля ног. Розвійдіться прямо, не розгинайте спину вгорі.' },
+      { type: 'breathing', text: 'Вдихайте перед підйомом, видихайте в верхній точці.' },
+      { type: 'safety', text: 'Спина пряма, не вигинайте поясницю. Гриф близько до тіла.' },
+    ],
   },
   {
     id: 'bb-bench',
@@ -332,6 +501,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 40,
     restSec: 60,
     cue: 'Гриф до нижньої частини грудей, стопи впритиснуті',
+    instructions: [
+      { type: 'setup', text: 'Ляжте на лавку на спині, стопи на підлозі. Хват на ширині плеч або ширше.' },
+      { type: 'movement', text: 'Опустіть гриф до середини грудей, потім натисніть його вгору до прямої позиції.' },
+      { type: 'breathing', text: 'Вдихайте при опусканні, видихайте при натисканні.' },
+      { type: 'safety', text: 'Не розгинайте локті до кінця. Використовуйте страхувальника при важких вагах.' },
+    ],
   },
   {
     id: 'bb-row',
@@ -343,6 +518,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 35,
     restSec: 55,
     cue: 'Нахил 45°, тягни до пупка',
+    instructions: [
+      { type: 'setup', text: 'Тримайте гриф прямим хватом, відійдіть тазом назад, нахиліться під кутом 45°, спина пряма.' },
+      { type: 'movement', text: 'Потягніть гриф до пупка, зводячи лопатки. Повільно опустіть назад.' },
+      { type: 'breathing', text: 'Вдихайте при опусканні, видихайте при підтягуванні.' },
+      { type: 'safety', text: 'Спина пряма, не вигинайте поясницю. Коління leicht згнуті.' },
+    ],
   },
   {
     id: 'bb-ohp',
@@ -354,6 +535,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 25,
     restSec: 60,
     cue: 'Жим строго вгору, прохід підборіддя швидко',
+    instructions: [
+      { type: 'setup', text: 'Гриф на рівні грудей, хват на ширині плеч, кора напружена.' },
+      { type: 'movement', text: 'Жміть гриф вгору по прямій лінії, проведіть голову трохи назад, щоб минати підборіддя.' },
+      { type: 'breathing', text: 'Вдихайте перед жимом, видихайте при натисканні вгору.' },
+      { type: 'safety', text: 'Не прогинайте поясницю. Тримайте корпус стабільним.' },
+    ],
   },
   {
     id: 'bb-rdl',
@@ -365,6 +552,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 40,
     restSec: 55,
     cue: 'Відхід тазом назад, розтяг задньої поверхні',
+    instructions: [
+      { type: 'setup', text: 'Тримайте гриф біля ног, коліна leicht згнуті, спина пряма.' },
+      { type: 'movement', text: 'Відійдіть тазом назад, опускаючи гриф по ногах до 중轻 коліна. Відчуйте розтяг бицепса бедра.' },
+      { type: 'breathing', text: 'Вдихайте при опусканні, видихайте при поверненні.' },
+      { type: 'safety', text: 'Спина пряма, не вигинайте поясницю. Рух лише в тазобедренному суставі.' },
+    ],
   },
   {
     id: 'bb-front-squat',
@@ -376,6 +569,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 35,
     restSec: 60,
     cue: 'Штанга на дельтах, ліктю вгору',
+    instructions: [
+      { type: 'setup', text: 'Гриф на передніх дельтах, ліктю вгору, хват окремими пальцями або хвильовим.' },
+      { type: 'movement', text: 'Згніть коліна і відійдіть тазом назад, тримаючи грудь прямо. Поверніться вгору.' },
+      { type: 'breathing', text: 'Вдихайте перед опусканням, видихайте при підйомі.' },
+      { type: 'safety', text: 'Коління не виходять за носки. Спина пряма, грудь піднята.' },
+    ],
   },
   {
     id: 'bb-hip-thrust',
@@ -387,6 +586,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 50,
     restSec: 50,
     cue: 'Плечі на лавці, розгинання тазу вгору',
+    instructions: [
+      { type: 'setup', text: 'Плечі на краю лавки, гриф на тазі, стопи на підлозі на ширині плеч.' },
+      { type: 'movement', text: 'Відірвіть таз від підлоги, піднімаючи його до рівня підборіть, стискаючи ягодиці.' },
+      { type: 'breathing', text: 'Видихайте при підйомі таза, вдихайте при опусканні.' },
+      { type: 'safety', text: 'Не вигинайте поясницю. Рух лише в тазобедренному суставі.' },
+    ],
   },
   {
     id: 'bb-lunge',
@@ -398,6 +603,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 30,
     restSec: 45,
     cue: 'Крок вперед, заднє коліно до підлоги',
+    instructions: [
+      { type: 'setup', text: 'Гриф на трапеціях, станьте рівно, стопи на ширині плеч.' },
+      { type: 'movement', text: 'Зробіть крок вперед, згніть обидва коліна до 90°, потім поверніться до початкового положення.' },
+      { type: 'breathing', text: 'Вдихайте при кроці вперед, видихайте при поверненні.' },
+      { type: 'safety', text: 'Переднє коліно не виходить за носок стопи. Спина пряма.' },
+    ],
   },
   {
     id: 'bb-push-press',
@@ -409,6 +620,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 35,
     restSec: 60,
     cue: 'Легкий розгін ногами, жим вгору',
+    instructions: [
+      { type: 'setup', text: 'Гриф на рівні грудей, стопи на ширині плеч, кора напружена.' },
+      { type: 'movement', text: 'Згніть коліна на короткий розгін, потім ви شنовитеся і жиміть гриф вгору.' },
+      { type: 'breathing', text: 'Вдихайте перед розгіном, видихайте при жимі.' },
+      { type: 'safety', text: 'Не прогинайте поясницю. Рух плавний, без кидання.' },
+    ],
   },
   {
     id: 'bb-tbar',
@@ -420,6 +637,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 40,
     restSec: 50,
     cue: 'Нахил 45°, тягни до грудей',
+    instructions: [
+      { type: 'setup', text: 'Опирайте грудю на підтримку T-тяги, хват посередині грифа.' },
+      { type: 'movement', text: 'Потягніть гриф до нижньої частини грудей, зводячи лопатки. Повільно опустіть.' },
+      { type: 'breathing', text: 'Вдихайте при опусканні, видихайте при підтягуванні.' },
+      { type: 'safety', text: 'Спина пряма, не вигинайте поясницю.' },
+    ],
   },
   {
     id: 'bb-good-morning',
@@ -431,6 +654,12 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 30,
     restSec: 55,
     cue: 'Штанга на трапеціях, нахил з прямою спиною',
+    instructions: [
+      { type: 'setup', text: 'Гриф на трапеціях, ноги на ширині плеч, коліна leicht згнуті.' },
+      { type: 'movement', text: 'Наклоніться вперед з прямою спиною, відійде тазом назад, потім поверніться вгору.' },
+      { type: 'breathing', text: 'Вдихайте при нахилі, видихайте при повертанні.' },
+      { type: 'safety', text: 'Не вигинайте поясницю. Коління轻ко згнуті.' },
+    ],
   },
   {
     id: 'bb-landmine',
@@ -442,6 +671,30 @@ export const WEIGHTED_LIBRARY: WeightedExercise[] = [
     defaultWeightKg: 25,
     restSec: 45,
     cue: 'Одноручний жим по дузі, кора стабільна',
+    instructions: [
+      { type: 'setup', text: "Один кінець грифа у лендмайн-тримаку або куті, тримайте інший кінець однією рукою." },
+      { type: 'movement', text: 'Жміть край грифа вгору по дузі, обертаючи корпус трохи в бік жиму.' },
+      { type: 'breathing', text: 'Вдихайте внизу, видихайте при жимі вгору.' },
+      { type: 'safety', text: 'Спина пряма, тримайте прес напруженим.' },
+    ],
+  },
+  {
+    id: 'bb-hold',
+    name: 'Утримання штанги (Bar Hold)',
+    equipment: 'barbell',
+    muscleGroup: 'strength',
+    defaultReps: 30,
+    defaultRepsUnit: 'sec',
+    defaultSets: 3,
+    defaultWeightKg: 40,
+    restSec: 60,
+    cue: 'Статично тримай гриф, лопатки зведені, дихай',
+    instructions: [
+      { type: 'setup', text: 'Тримайте гриф перед собою прямими руками, стайте рівно.' },
+      { type: 'movement', text: 'Тримайте гриф на рівні плеч абоเบреду, не розгинаячи руки до кінця.' },
+      { type: 'breathing', text: 'Дихання рівне і глибоке на весь час утримання.' },
+      { type: 'safety', text: 'Не вигинайте спину. Тримайте плечі зведеними.' },
+    ],
   },
   {
     id: 'bb-hold',

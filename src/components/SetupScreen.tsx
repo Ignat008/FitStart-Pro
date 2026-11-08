@@ -27,6 +27,8 @@ import {
   filterByEquipment,
   type WeightedExercise,
 } from '@/weightedLibrary';
+import { ExerciseInstruction } from '@/components/ExerciseInstruction';
+import type { Instruction } from '@/types';
 
 interface Props {
   onGenerate: (input: SessionInput) => void;
@@ -66,6 +68,7 @@ interface SelectedExercise {
   weightKg: number;
   restSec: number;
   cue: string;
+  instructions?: Instruction[];
   isEditing?: boolean;
 }
 
@@ -105,6 +108,7 @@ export default function SetupScreen({ onGenerate, onOpenSettings, hasApiKey, loa
         weightKg: ex.defaultWeightKg,
         restSec: ex.restSec,
         cue: ex.cue,
+        instructions: ex.instructions,
         isEditing: false,
       },
     ]);
@@ -613,123 +617,131 @@ export default function SetupScreen({ onGenerate, onOpenSettings, hasApiKey, loa
                   const Icon = equipmentIcons[ex.equipment];
                   const isEditing = ex.isEditing;
                   return (
-                    <div
-                      key={ex.baseId}
-                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
-                        isEditing
-                          ? 'border-neon-blue/40 bg-neon-blue/5 ring-1 ring-neon-blue/20'
-                          : 'border-neon-amber/20 bg-neon-amber/5'
-                      }`}
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-neon-amber/15 text-neon-amber flex items-center justify-center shrink-0">
-                        <Icon size={16} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h5 className="font-semibold text-sm truncate">{ex.name}</h5>
-                        <p className="text-[11px] text-cyber-muted">{EQUIPMENT_LABELS[ex.equipment].title}</p>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
-                        {/* Weight */}
-                        <div className="flex items-center gap-1 bg-cyber-bg/50 rounded-lg px-2 py-1 border border-cyber-border/50">
-                          <span className="text-[9px] text-cyber-muted uppercase tracking-wider">кг</span>
-                          <button
-                            onClick={() => handleUpdateWeight(ex.baseId, -2.5)}
-                            className="w-7 h-7 rounded border border-cyber-border text-cyber-muted hover:text-neon-amber hover:border-neon-amber/40 flex items-center justify-center transition-all text-xs"
-                            aria-label="Зменшити вагу"
-                          >
-                            <Minus size={14} />
-                          </button>
-                          <span className="text-sm font-mono font-bold text-neon-amber tabular-nums w-10 text-center">
-                            {ex.weightKg}
-                          </span>
-                          <button
-                            onClick={() => handleUpdateWeight(ex.baseId, 2.5)}
-                            className="w-7 h-7 rounded border border-cyber-border text-cyber-muted hover:text-neon-amber hover:border-neon-amber/40 flex items-center justify-center transition-all text-xs"
-                            aria-label="Збільшити вагу"
-                          >
-                            <Plus size={14} />
-                          </button>
+                    <>
+                      <div
+                        key={ex.baseId}
+                        className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                          isEditing
+                            ? 'border-neon-blue/40 bg-neon-blue/5 ring-1 ring-neon-blue/20'
+                            : 'border-neon-amber/20 bg-neon-amber/5'
+                        }`}
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-neon-amber/15 text-neon-amber flex items-center justify-center shrink-0">
+                          <Icon size={16} />
                         </div>
-                        {/* Sets */}
-                        <div className="flex items-center gap-1 bg-cyber-bg/50 rounded-lg px-2 py-1 border border-cyber-border/50">
-                          <span className="text-[9px] text-cyber-muted uppercase tracking-wider">сети</span>
-                          <button
-                            onClick={() => handleUpdateSets(ex.baseId, -1)}
-                            className="w-7 h-7 rounded border border-cyber-border text-cyber-muted hover:text-neon-amber hover:border-neon-amber/40 flex items-center justify-center transition-all text-xs"
-                            aria-label="Зменшити підходи"
-                          >
-                            <Minus size={14} />
-                          </button>
-                          <span className="text-sm font-mono font-bold tabular-nums w-6 text-center">{ex.sets}</span>
-                          <button
-                            onClick={() => handleUpdateSets(ex.baseId, 1)}
-                            className="w-7 h-7 rounded border border-cyber-border text-cyber-muted hover:text-neon-amber hover:border-neon-amber/40 flex items-center justify-center transition-all text-xs"
-                            aria-label="Збільшити підходи"
-                          >
-                            <Plus size={14} />
-                          </button>
+                        <div className="flex-1 min-w-0">
+                          <h5 className="font-semibold text-sm truncate">{ex.name}</h5>
+                          <p className="text-[11px] text-cyber-muted">{EQUIPMENT_LABELS[ex.equipment].title}</p>
                         </div>
-                        {/* Reps / Time */}
-                        {isEditing ? (
-                          <div className="flex items-center gap-1 bg-cyber-bg/50 rounded-lg px-2 py-1 border border-neon-blue/40">
+                        <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                          {/* Weight */}
+                          <div className="flex items-center gap-1 bg-cyber-bg/50 rounded-lg px-2 py-1 border border-cyber-border/50">
+                            <span className="text-[9px] text-cyber-muted uppercase tracking-wider">кг</span>
                             <button
-                              onClick={() => handleToggleUnit(ex.baseId)}
-                              className="text-[9px] text-neon-blue uppercase tracking-wider hover:underline"
-                              title="Перемкнути: повторення / час"
-                            >
-                              {ex.repsUnit === 'sec' ? 'сек' : 'повт'}
-                            </button>
-                            <button
-                              onClick={() => handleUpdateReps(ex.baseId, ex.repsUnit === 'sec' ? -5 : -1)}
-                              className="w-7 h-7 rounded border border-neon-blue/40 text-neon-blue hover:bg-neon-blue/10 flex items-center justify-center transition-all text-xs"
-                              aria-label="Зменшити"
+                              onClick={() => handleUpdateWeight(ex.baseId, -2.5)}
+                              className="w-7 h-7 rounded border border-cyber-border text-cyber-muted hover:text-neon-amber hover:border-neon-amber/40 flex items-center justify-center transition-all text-xs"
+                              aria-label="Зменшити вагу"
                             >
                               <Minus size={14} />
                             </button>
-                            <input
-                              type="number"
-                              value={ex.reps}
-                              onChange={(e) => handleSetReps(ex.baseId, parseInt(e.target.value) || 1)}
-                              onBlur={() => handleToggleEdit(ex.baseId)}
-                              onKeyDown={(e) => e.key === 'Enter' && handleToggleEdit(ex.baseId)}
-                              className="w-12 text-center text-sm font-mono font-bold bg-transparent border-none outline-none text-neon-blue"
-                              min="1"
-                              max={ex.repsUnit === 'sec' ? 600 : 50}
-                              autoFocus
-                            />
+                            <span className="text-sm font-mono font-bold text-neon-amber tabular-nums w-10 text-center">
+                              {ex.weightKg}
+                            </span>
                             <button
-                              onClick={() => handleUpdateReps(ex.baseId, ex.repsUnit === 'sec' ? 5 : 1)}
-                              className="w-7 h-7 rounded border border-neon-blue/40 text-neon-blue hover:bg-neon-blue/10 flex items-center justify-center transition-all text-xs"
-                              aria-label="Збільшити"
+                              onClick={() => handleUpdateWeight(ex.baseId, 2.5)}
+                              className="w-7 h-7 rounded border border-cyber-border text-cyber-muted hover:text-neon-amber hover:border-neon-amber/40 flex items-center justify-center transition-all text-xs"
+                              aria-label="Збільшити вагу"
                             >
                               <Plus size={14} />
                             </button>
                           </div>
-                        ) : (
+                          {/* Sets */}
+                          <div className="flex items-center gap-1 bg-cyber-bg/50 rounded-lg px-2 py-1 border border-cyber-border/50">
+                            <span className="text-[9px] text-cyber-muted uppercase tracking-wider">сети</span>
+                            <button
+                              onClick={() => handleUpdateSets(ex.baseId, -1)}
+                              className="w-7 h-7 rounded border border-cyber-border text-cyber-muted hover:text-neon-amber hover:border-neon-amber/40 flex items-center justify-center transition-all text-xs"
+                              aria-label="Зменшити підходи"
+                            >
+                              <Minus size={14} />
+                            </button>
+                            <span className="text-sm font-mono font-bold tabular-nums w-6 text-center">{ex.sets}</span>
+                            <button
+                              onClick={() => handleUpdateSets(ex.baseId, 1)}
+                              className="w-7 h-7 rounded border border-cyber-border text-cyber-muted hover:text-neon-amber hover:border-neon-amber/40 flex items-center justify-center transition-all text-xs"
+                              aria-label="Збільшити підходи"
+                            >
+                              <Plus size={14} />
+                            </button>
+                          </div>
+                          {/* Reps / Time */}
+                          {isEditing ? (
+                            <div className="flex items-center gap-1 bg-cyber-bg/50 rounded-lg px-2 py-1 border border-neon-blue/40">
+                              <button
+                                onClick={() => handleToggleUnit(ex.baseId)}
+                                className="text-[9px] text-neon-blue uppercase tracking-wider hover:underline"
+                                title="Перемкнути: повторення / час"
+                              >
+                                {ex.repsUnit === 'sec' ? 'сек' : 'повт'}
+                              </button>
+                              <button
+                                onClick={() => handleUpdateReps(ex.baseId, ex.repsUnit === 'sec' ? -5 : -1)}
+                                className="w-7 h-7 rounded border border-neon-blue/40 text-neon-blue hover:bg-neon-blue/10 flex items-center justify-center transition-all text-xs"
+                                aria-label="Зменшити"
+                              >
+                                <Minus size={14} />
+                              </button>
+                              <input
+                                type="number"
+                                value={ex.reps}
+                                onChange={(e) => handleSetReps(ex.baseId, parseInt(e.target.value) || 1)}
+                                onBlur={() => handleToggleEdit(ex.baseId)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleToggleEdit(ex.baseId)}
+                                className="w-12 text-center text-sm font-mono font-bold bg-transparent border-none outline-none text-neon-blue"
+                                min="1"
+                                max={ex.repsUnit === 'sec' ? 600 : 50}
+                                autoFocus
+                              />
+                              <button
+                                onClick={() => handleUpdateReps(ex.baseId, ex.repsUnit === 'sec' ? 5 : 1)}
+                                className="w-7 h-7 rounded border border-neon-blue/40 text-neon-blue hover:bg-neon-blue/10 flex items-center justify-center transition-all text-xs"
+                                aria-label="Збільшити"
+                              >
+                                <Plus size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleToggleEdit(ex.baseId)}
+                              className="flex items-center gap-1 bg-cyber-bg/50 rounded-lg px-2 py-1 border border-cyber-border/50 hover:border-neon-blue/40 hover:bg-neon-blue/5 transition-all"
+                              aria-label="Редагувати кількість або час"
+                            >
+                              <span className="text-[9px] text-cyber-muted uppercase tracking-wider">
+                                {ex.repsUnit === 'sec' ? 'сек' : 'повт'}
+                              </span>
+                              <span className="text-sm font-mono font-bold text-neon-amber tabular-nums w-8 text-center">
+                                {ex.reps}
+                              </span>
+                              <Edit2 size={12} className="text-cyber-muted hover:text-neon-blue transition-colors" />
+                            </button>
+                          )}
+                          {/* Delete */}
                           <button
-                            onClick={() => handleToggleEdit(ex.baseId)}
-                            className="flex items-center gap-1 bg-cyber-bg/50 rounded-lg px-2 py-1 border border-cyber-border/50 hover:border-neon-blue/40 hover:bg-neon-blue/5 transition-all"
-                            aria-label="Редагувати кількість або час"
+                            onClick={() => handleRemoveExercise(ex.baseId)}
+                            className="w-8 h-8 rounded-lg border border-neon-red/30 text-neon-red/70 hover:bg-neon-red/10 hover:text-neon-red flex items-center justify-center transition-all shrink-0"
+                            aria-label="Видалити вправу"
                           >
-                            <span className="text-[9px] text-cyber-muted uppercase tracking-wider">
-                              {ex.repsUnit === 'sec' ? 'сек' : 'повт'}
-                            </span>
-                            <span className="text-sm font-mono font-bold text-neon-amber tabular-nums w-8 text-center">
-                              {ex.reps}
-                            </span>
-                            <Edit2 size={12} className="text-cyber-muted hover:text-neon-blue transition-colors" />
+                            <X size={14} />
                           </button>
-                        )}
-                        {/* Delete */}
-                        <button
-                          onClick={() => handleRemoveExercise(ex.baseId)}
-                          className="w-8 h-8 rounded-lg border border-neon-red/30 text-neon-red/70 hover:bg-neon-red/10 hover:text-neon-red flex items-center justify-center transition-all shrink-0"
-                          aria-label="Видалити вправу"
-                        >
-                          <X size={14} />
-                        </button>
+                        </div>
                       </div>
-                    </div>
+                      {ex.instructions && ex.instructions.length > 0 && (
+                        <ExerciseInstruction
+                          instructions={ex.instructions}
+                          className="mt-3"
+                        />
+                      )}
+                    </>
                   );
                 })}
               </div>

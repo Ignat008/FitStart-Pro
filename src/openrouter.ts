@@ -272,6 +272,7 @@ function appendWeightedToPlan(plan: WorkoutPlan, weighted: WeightedSelection[]):
     equipment: w.equipment,
     weightKg: w.weightKg,
     sets: w.sets,
+    instructions: w.instructions,
   }));
 
   plan.rounds.push({
