@@ -6,7 +6,7 @@ import {
   Zap,
   Settings,
   Flame,
-  Trophy,
+  Activity,
   Timer,
   AlertTriangle,
   Rocket,
@@ -177,7 +177,7 @@ export default function SetupScreen({ onGenerate, onOpenSettings, hasApiKey, loa
         <div className="flex items-center gap-3">
           <div className="relative">
             <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-neon-blue to-neon-pink flex items-center justify-center shadow-lg">
-              <Trophy size={22} className="text-white" strokeWidth={2.5} />
+              <Activity size={22} className="text-white" strokeWidth={2.5} />
             </div>
             <div className="absolute inset-0 rounded-xl bg-neon-blue/30 blur-md -z-10" />
           </div>
