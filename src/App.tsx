@@ -4,6 +4,9 @@ import SessionScreen from '@/components/SessionScreen';
 import SettingsModal from '@/components/SettingsModal';
 import { generateWorkout, getApiKey } from '@/openrouter';
 import type { SessionInput, WorkoutPlan } from '@/types';
+import { loadProfile, saveProfile, awardXp, type UserProfile } from '@/gamification';
+import { UserProfile as UserProfileCard } from '@/components/UserProfile';
+import { LevelUpModal } from '@/components/LevelUpModal';
 
 type Screen = 'setup' | 'session';
 
@@ -14,6 +17,14 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState<WorkoutPlan | null>(null);
   const [source, setSource] = useState<'ai' | 'fallback'>('fallback');
+  const [profile, setProfile] = useState<UserProfile>(loadProfile);
+  const [levelUp, setLevelUp] = useState<{
+    open: boolean;
+    oldLevel: number;
+    newLevel: number;
+    profile: UserProfile;
+    xpEarned: number;
+  } | null>(null);
 
   const refreshKey = () => setHasApiKey(!!getApiKey());
 
@@ -37,21 +48,49 @@ function App() {
     refreshKey();
   };
 
+  const handleFinish = (xpEarned: number) => {
+    const { profile: newProfile, leveledUp } = awardXp(profile, xpEarned);
+    setProfile(newProfile);
+    saveProfile(newProfile);
+    if (leveledUp) {
+      setLevelUp({
+        open: true,
+        oldLevel: profile.level,
+        newLevel: newProfile.level,
+        profile: newProfile,
+        xpEarned,
+      });
+    }
+  };
+
+  const handleCloseLevelUp = () => {
+    setLevelUp(null);
+  };
+
   return (
     <>
       {screen === 'setup' && (
-        <SetupScreen
-          onGenerate={handleGenerate}
-          onOpenSettings={() => setSettingsOpen(true)}
-          hasApiKey={hasApiKey}
-          loading={loading}
-        />
+        <>
+          <div className="relative z-10 mb-4">
+            <UserProfileCard profile={profile} compact />
+          </div>
+          <SetupScreen
+            onGenerate={handleGenerate}
+            onOpenSettings={() => setSettingsOpen(true)}
+            hasApiKey={hasApiKey}
+            loading={loading}
+          />
+        </>
       )}
       {screen === 'session' && plan && (
         <SessionScreen
           plan={plan}
           source={source}
-          onComplete={() => {}}
+          profile={profile}
+          onComplete={(xpEarned: number) => {
+            handleFinish(xpEarned);
+            setScreen('setup');
+          }}
           onRestart={handleRestart}
         />
       )}
@@ -62,6 +101,16 @@ function App() {
           refreshKey();
         }}
       />
+      {levelUp && (
+        <LevelUpModal
+          open={levelUp.open}
+          onClose={handleCloseLevelUp}
+          oldLevel={levelUp.oldLevel}
+          newLevel={levelUp.newLevel}
+          profile={levelUp.profile}
+          xpEarned={levelUp.xpEarned}
+        />
+      )}
     </>
   );
 }

@@ -26,17 +26,20 @@ import { pluralizeUk } from '@/types';
 import { formatTime } from '@/useCountdown';
 import { EQUIPMENT_LABELS } from '@/weightedLibrary';
 import { ExerciseInstruction } from '@/components/ExerciseInstruction';
+import { workoutXp } from '@/gamification';
+import { UserProfile as UserProfileCard } from '@/components/UserProfile';
 
 interface Props {
   plan: WorkoutPlan;
   source: 'ai' | 'fallback';
-  onComplete: () => void;
+  profile: { level: number; xp: number; totalXpEarned: number; totalWorkouts: number };
+  onComplete: (xpEarned: number) => void;
   onRestart: () => void;
 }
 
 type ActiveTimerKind = 'work' | 'rest' | 'round' | 'none';
 
-export default function SessionScreen({ plan, source, onComplete, onRestart }: Props) {
+export default function SessionScreen({ plan, source, profile, onComplete, onRestart }: Props) {
   const allExercises = useMemo(() => {
     return plan.rounds.flatMap((r, ri) =>
       r.exercises.map((ex, ei) => ({
@@ -63,25 +66,39 @@ export default function SessionScreen({ plan, source, onComplete, onRestart }: P
 
   const allDone = doneCount === totalSets && totalSets > 0;
 
+  const xpEarned = allDone
+    ? workoutXp({
+        durationMin: plan.durationMin,
+        completedSets: doneCount,
+        totalSets,
+      })
+    : 0;
+
   const handleFinish = () => {
     setPhase('finished');
-    onComplete();
+    onComplete(xpEarned);
   };
 
   if (phase === 'finished') {
-    return <FinishedView plan={plan} doneCount={doneCount} totalSets={totalSets} liveXp={liveXp} liveCalories={liveCalories} onRestart={onRestart} />;
+    return <FinishedView plan={plan} doneCount={doneCount} totalSets={totalSets} liveCalories={liveCalories} xpEarned={xpEarned} onRestart={onRestart} />;
   }
 
   if (phase === 'ready') {
     return (
-      <ReadyView
-        plan={plan}
-        source={source}
-        onStart={() => {
-          setPhase('preview');
-        }}
-        onRestart={onRestart}
-      />
+      <>
+        <div className="relative z-10 mb-4">
+          <UserProfileCard profile={profile} compact />
+        </div>
+        <ReadyView
+          plan={plan}
+          source={source}
+          profile={profile}
+          onStart={() => {
+            setPhase('preview');
+          }}
+          onRestart={onRestart}
+        />
+      </>
     );
   }
 
@@ -104,6 +121,8 @@ export default function SessionScreen({ plan, source, onComplete, onRestart }: P
     <ActiveSession
       plan={plan}
       source={source}
+      profile={profile}
+      xpEarned={xpEarned}
       allExercises={allExercises}
       completed={completed}
       setCompleted={setCompleted}
@@ -128,11 +147,13 @@ export default function SessionScreen({ plan, source, onComplete, onRestart }: P
 function ReadyView({
   plan,
   source,
+  profile,
   onStart,
   onRestart,
 }: {
   plan: WorkoutPlan;
   source: 'ai' | 'fallback';
+  profile: { level: number; xp: number; totalXpEarned: number; totalWorkouts: number };
   onStart: () => void;
   onRestart: () => void;
 }) {
@@ -157,6 +178,10 @@ function ReadyView({
 
         <div className="cyber-panel p-5 text-left mb-6">
           <p className="text-sm leading-relaxed text-cyber-text/90">{plan.intro}</p>
+        </div>
+
+        <div className="mb-6">
+          <UserProfileCard profile={profile} />
         </div>
 
         <div className="grid grid-cols-3 gap-3 mb-6">
@@ -328,6 +353,8 @@ function PreviewView({
 interface ActiveSessionProps {
   plan: WorkoutPlan;
   source: 'ai' | 'fallback';
+  profile: { level: number; xp: number; totalXpEarned: number; totalWorkouts: number };
+  xpEarned: number;
   allExercises: { roundIndex: number; exIndex: number; exercise: Exercise; round: Round }[];
   completed: Set<string>;
   setCompleted: React.Dispatch<React.SetStateAction<Set<string>>>;
@@ -343,13 +370,15 @@ interface ActiveSessionProps {
   liveXp: number;
   liveCalories: number;
   allDone: boolean;
-  onFinish: () => void;
+  onFinish: (xpEarned: number) => void;
   onRestart: () => void;
 }
 
 function ActiveSession({
   plan,
   source,
+  profile,
+  xpEarned,
   allExercises,
   completed,
   setCompleted,
@@ -571,6 +600,9 @@ function ActiveSession({
             <StatChip icon={Zap} value={liveXp} label="XP" color="yellow" />
             <StatChip icon={CheckCircle2} value={`${doneCount}/${totalSets}`} label="сетів" color="blue" />
           </div>
+          <div className="w-full sm:w-auto mt-3 sm:mt-0 sm:ml-4">
+            <UserProfileCard profile={profile} compact />
+          </div>
         </div>
         <div className="h-1 bg-cyber-border">
           <div
@@ -732,7 +764,7 @@ function ActiveSession({
           </div>
 
           <button
-            onClick={onFinish}
+            onClick={() => onFinish(xpEarned)}
             disabled={!allDone}
             className={`w-full py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 ${
               allDone
@@ -880,15 +912,15 @@ function FinishedView({
   plan,
   doneCount,
   totalSets,
-  liveXp,
   liveCalories,
+  xpEarned,
   onRestart,
 }: {
   plan: WorkoutPlan;
   doneCount: number;
   totalSets: number;
-  liveXp: number;
   liveCalories: number;
+  xpEarned: number;
   onRestart: () => void;
 }) {
   return (
@@ -908,7 +940,7 @@ function FinishedView({
         <div className="grid grid-cols-3 gap-3 mb-6">
           <ResultStat icon={CheckCircle2} value={`${doneCount}/${totalSets}`} label="Сетів" color="blue" />
           <ResultStat icon={Flame} value={liveCalories} label="Ккал" color="orange" />
-          <ResultStat icon={Zap} value={liveXp} label="XP" color="yellow" />
+          <ResultStat icon={Zap} value={xpEarned} label="+XP" color="yellow" />
         </div>
 
         <div className="cyber-panel p-5 text-left mb-6">
