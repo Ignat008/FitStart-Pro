@@ -72,7 +72,7 @@ export function loadProfile(): UserProfile {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      return {
+      const profile: UserProfile = {
         level: typeof parsed.level === 'number' ? parsed.level : 1,
         xp: typeof parsed.xp === 'number' ? parsed.xp : 0,
         totalXpEarned: typeof parsed.totalXpEarned === 'number' ? parsed.totalXpEarned : 0,
@@ -82,6 +82,38 @@ export function loadProfile(): UserProfile {
         currentStreak: typeof parsed.currentStreak === 'number' ? parsed.currentStreak : 0,
         longestStreak: typeof parsed.longestStreak === 'number' ? parsed.longestStreak : 0,
       };
+
+      const lastWorkoutKey = profile.lastWorkoutDate
+        ? workoutDateKey(profile.lastWorkoutDate)
+        : null;
+      let migrated = false;
+      if (lastWorkoutKey && profile.lastWorkoutDate !== lastWorkoutKey) {
+        profile.lastWorkoutDate = lastWorkoutKey;
+        migrated = true;
+      }
+
+      if (lastWorkoutKey) {
+        const [year, month, day] = lastWorkoutKey.split('-').map(Number);
+        const [todayYear, todayMonth, todayDay] = localDateKey(new Date()).split('-').map(Number);
+        const lastWorkoutDay = Date.UTC(year, month - 1, day);
+        const today = Date.UTC(todayYear, todayMonth - 1, todayDay);
+        const daysSinceWorkout = Math.round((today - lastWorkoutDay) / (1000 * 60 * 60 * 24));
+
+        if (daysSinceWorkout >= 0 && daysSinceWorkout <= 1) {
+          if (!profile.workoutDates.some((date) => workoutDateKey(date) === lastWorkoutKey)) {
+            profile.workoutDates = [...profile.workoutDates, lastWorkoutKey];
+            migrated = true;
+          }
+          if (profile.currentStreak === 0) {
+            profile.currentStreak = 1;
+            profile.longestStreak = Math.max(profile.longestStreak, 1);
+            migrated = true;
+          }
+        }
+      }
+
+      if (migrated) saveProfile(profile);
+      return profile;
     }
   } catch {
     // Ігноруємо помилки читання localStorage
