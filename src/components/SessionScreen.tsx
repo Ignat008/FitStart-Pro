@@ -119,13 +119,17 @@ export default function SessionScreen({ plan, source, profile, activeDays, onCom
       challengeData?.progress ?? [],
     );
 
-    if (!progress) return;
+    const safeProgress = progress ?? {
+      challengeId: challenge.id,
+      progress: 0,
+      joinedAt: new Date().toISOString(),
+    };
 
     const {
       progress: newProgress,
       bonusXp,
     } = updateChallengeProgress(
-      progress,
+      safeProgress,
       challenge,
       profile.totalWorkouts,
       profile.totalXpEarned + streakBonusXp,
@@ -197,6 +201,12 @@ export default function SessionScreen({ plan, source, profile, activeDays, onCom
         }}
       />
     );
+  }
+
+  // Якщо всі вправи завершені і таймер зупинений, автоматично переходимо на екран завершення
+  if (allDone && activeTimer === 'none') {
+    setPhase('finished');
+    return <FinishedView plan={plan} doneCount={doneCount} totalSets={totalSets} liveCalories={liveCalories} xpEarned={xpEarned} streakBonusXp={streakBonusXp} streakMilestone={streakMilestone} challengeBonusXp={challengeBonusXp} challengeRewardTitle={challengeRewardTitle} onRestart={onRestart} />;
   }
 
   return (
@@ -631,6 +641,16 @@ function ActiveSession({
   };
 
   const handleSkipTimer = () => {
+    const ri = currentRoundIndex;
+    const ei = currentExerciseIndex;
+    const round = plan.rounds[ri];
+    const ex = round?.exercises[ei];
+    
+    // Позначте поточну вправу як виконану
+    if (ex) {
+      markExerciseComplete(ri, ei);
+    }
+    
     setRemaining(0);
   };
 
