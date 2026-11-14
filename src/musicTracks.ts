@@ -4,6 +4,11 @@ export interface MusicTrack {
   artist: string;
   src: string;
   artwork: string;
+  album?: string;
+  artworkUrl?: string;
+  sourceUrl?: string;
+  isLocal?: boolean;
+  isPreview?: boolean;
 }
 
 export const MUSIC_TRACKS: MusicTrack[] = [

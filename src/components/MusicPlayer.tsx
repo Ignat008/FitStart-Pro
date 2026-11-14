@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import {
   AlertCircle,
   ChevronDown,
+  FolderOpen,
   LoaderCircle,
   Music2,
   Pause,
@@ -11,13 +12,52 @@ import {
   Shuffle,
   SkipBack,
   SkipForward,
+  Trash2,
   Volume2,
   VolumeX,
   X,
 } from 'lucide-react';
-import { MUSIC_TRACKS } from '@/musicTracks';
+import { MUSIC_TRACKS, type MusicTrack } from '@/musicTracks';
+import MusicCatalogSearch from '@/components/MusicCatalogSearch';
 
 type RepeatMode = 'off' | 'all' | 'one';
+const SAVED_TRACKS_KEY = 'fitstart_music_tracks';
+const APPLE_ARTWORK = 'from-sky-500 to-indigo-700';
+
+function isSavedAppleTrack(value: unknown): value is MusicTrack {
+  if (typeof value !== 'object' || value === null) return false;
+  const track = value as Record<string, unknown>;
+  return (
+    typeof track.id === 'string' &&
+    track.id.startsWith('apple-') &&
+    typeof track.title === 'string' &&
+    typeof track.artist === 'string' &&
+    typeof track.src === 'string' &&
+    track.src.startsWith('https://audio-ssl.itunes.apple.com/') &&
+    track.artwork === APPLE_ARTWORK &&
+    typeof track.sourceUrl === 'string' &&
+    track.sourceUrl.startsWith('https://music.apple.com/') &&
+    (track.album === undefined || typeof track.album === 'string') &&
+    (track.artworkUrl === undefined ||
+      (typeof track.artworkUrl === 'string' &&
+        track.artworkUrl.startsWith('https://is') &&
+        track.artworkUrl.includes('.mzstatic.com/')))
+  );
+}
+
+function loadSavedAppleTracks(): { tracks: MusicTrack[]; error: string } {
+  try {
+    const raw = localStorage.getItem(SAVED_TRACKS_KEY);
+    if (!raw) return { tracks: [], error: '' };
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return { tracks: [], error: 'Збережений плейлист пошкоджений і не був завантажений.' };
+    }
+    return { tracks: parsed.filter(isSavedAppleTrack), error: '' };
+  } catch {
+    return { tracks: [], error: 'Не вдалося прочитати збережений плейлист браузера.' };
+  }
+}
 
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds)) return '0:00';
@@ -29,10 +69,21 @@ function formatTime(seconds: number): string {
 export default function MusicPlayer() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const playAfterLoadRef = useRef(false);
-  const [trackIndex, setTrackIndex] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const localTrackUrlsRef = useRef<string[]>([]);
+  const [savedTrackState] = useState(loadSavedAppleTracks);
+  const [savedAppleTracks, setSavedAppleTracks] = useState(savedTrackState.tracks);
+  const [localTracks, setLocalTracks] = useState<MusicTrack[]>([]);
+  const [trackId, setTrackId] = useState(MUSIC_TRACKS[0].id);
+  const tracks = useMemo(
+    () => [...MUSIC_TRACKS, ...savedAppleTracks, ...localTracks],
+    [localTracks, savedAppleTracks],
+  );
+  const trackIndex = Math.max(0, tracks.findIndex((item) => item.id === trackId));
+  const track = tracks[trackIndex] ?? MUSIC_TRACKS[0];
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(savedTrackState.error);
   const [expanded, setExpanded] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -40,7 +91,18 @@ export default function MusicPlayer() {
   const [muted, setMuted] = useState(false);
   const [shuffle, setShuffle] = useState(false);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>('off');
-  const track = MUSIC_TRACKS[trackIndex];
+  const [playlistQuery, setPlaylistQuery] = useState('');
+  const visibleTracks = tracks.filter((item) =>
+    `${item.title} ${item.artist} ${item.album ?? ''}`
+      .toLocaleLowerCase()
+      .includes(playlistQuery.trim().toLocaleLowerCase()),
+  );
+
+  useEffect(() => {
+    return () => {
+      localTrackUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, []);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -59,36 +121,35 @@ export default function MusicPlayer() {
     setError('');
     setIsPlaying(false);
     setIsLoading(true);
-    audio.load();
   }, [track.src]);
 
-  const selectTrack = useCallback((index: number, autoPlay = false) => {
+  const selectTrack = useCallback((id: string, autoPlay = false) => {
     const audio = audioRef.current;
     playAfterLoadRef.current = autoPlay || Boolean(audio && !audio.paused);
-    setTrackIndex(index);
+    setTrackId(id);
     setError('');
     setIsLoading(true);
   }, []);
 
   const playNext = useCallback(
     (autoPlay = false) => {
-      if (shuffle && MUSIC_TRACKS.length > 1) {
-        const choices = MUSIC_TRACKS.map((_, index) => index).filter(
-          (index) => index !== trackIndex,
+      if (shuffle && tracks.length > 1) {
+        const choices = tracks.filter(
+          (item) => item.id !== track.id,
         );
-        selectTrack(choices[Math.floor(Math.random() * choices.length)], autoPlay);
+        selectTrack(choices[Math.floor(Math.random() * choices.length)].id, autoPlay);
         return;
       }
 
-      if (trackIndex < MUSIC_TRACKS.length - 1) {
-        selectTrack(trackIndex + 1, autoPlay);
+      if (trackIndex < tracks.length - 1) {
+        selectTrack(tracks[trackIndex + 1].id, autoPlay);
       } else if (repeatMode === 'all') {
-        selectTrack(0, autoPlay);
+        selectTrack(tracks[0].id, autoPlay);
       } else {
         setIsPlaying(false);
       }
     },
-    [repeatMode, selectTrack, shuffle, trackIndex],
+    [repeatMode, selectTrack, shuffle, track, trackIndex, tracks],
   );
 
   const playPrevious = () => {
@@ -104,9 +165,88 @@ export default function MusicPlayer() {
       trackIndex > 0
         ? trackIndex - 1
         : repeatMode === 'all'
-          ? MUSIC_TRACKS.length - 1
+          ? tracks.length - 1
           : 0;
-    selectTrack(previousIndex, !audio.paused);
+    selectTrack(tracks[previousIndex].id, !audio.paused);
+  };
+
+  const playbackErrorMessage = () =>
+    track.isPreview
+      ? 'Не вдалося відтворити прев’ю. Перевір підтримку формату браузером або відкрий трек в Apple Music.'
+      : track.isLocal
+        ? 'Не вдалося відтворити цей аудіофайл. Перевір його формат.'
+        : 'Не вдалося відтворити демо-аудіо.';
+
+  const addAppleTrack = (trackToAdd: MusicTrack) => {
+    const nextTracks = savedAppleTracks.some((item) => item.id === trackToAdd.id)
+      ? savedAppleTracks
+      : [...savedAppleTracks, trackToAdd];
+    if (nextTracks !== savedAppleTracks) {
+      setSavedAppleTracks(nextTracks);
+      try {
+        localStorage.setItem(SAVED_TRACKS_KEY, JSON.stringify(nextTracks));
+      } catch {
+        setError('Не вдалося зберегти трек у плейлисті браузера.');
+      }
+    }
+    selectTrack(trackToAdd.id);
+  };
+
+  const addLocalFiles = (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.currentTarget.files ?? []);
+    const audioFiles = files.filter(
+      (file) =>
+        file.type.startsWith('audio/') ||
+        /\.(mp3|wav|m4a|aac|ogg|flac)$/i.test(file.name),
+    );
+    if (audioFiles.length === 0) {
+      setError('Обери аудіофайл у форматі MP3, WAV, M4A, AAC, OGG або FLAC.');
+      event.currentTarget.value = '';
+      return;
+    }
+
+    const additions = audioFiles.map((file, index) => {
+      const src = URL.createObjectURL(file);
+      localTrackUrlsRef.current.push(src);
+      return {
+        id: `local-${Date.now()}-${index}-${Math.random().toString(36).slice(2)}`,
+        title: file.name.replace(/\.[^.]+$/, ''),
+        artist: 'Локальний файл',
+        src,
+        artwork: 'from-violet-500 to-fuchsia-700',
+        isLocal: true,
+      };
+    });
+    setLocalTracks((current) => [...current, ...additions]);
+    event.currentTarget.value = '';
+  };
+
+  const removeTrack = (id: string) => {
+    if (id === track.id) {
+      audioRef.current?.pause();
+      playAfterLoadRef.current = false;
+      setTrackId(MUSIC_TRACKS[0].id);
+    }
+
+    const localTrack = localTracks.find((item) => item.id === id);
+    if (localTrack) {
+      URL.revokeObjectURL(localTrack.src);
+      localTrackUrlsRef.current = localTrackUrlsRef.current.filter(
+        (url) => url !== localTrack.src,
+      );
+      setLocalTracks((current) => current.filter((item) => item.id !== id));
+      return;
+    }
+
+    const nextTracks = savedAppleTracks.filter((item) => item.id !== id);
+    if (nextTracks.length !== savedAppleTracks.length) {
+      setSavedAppleTracks(nextTracks);
+      try {
+        localStorage.setItem(SAVED_TRACKS_KEY, JSON.stringify(nextTracks));
+      } catch {
+        setError('Не вдалося оновити плейлист у браузері.');
+      }
+    }
   };
 
   const togglePlayback = () => {
@@ -116,10 +256,21 @@ export default function MusicPlayer() {
       audio.pause();
       return;
     }
+    if (audio.error) {
+      playAfterLoadRef.current = false;
+      setIsLoading(false);
+      setError(playbackErrorMessage());
+      return;
+    }
+    if (isLoading || audio.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
+      playAfterLoadRef.current = true;
+      setIsLoading(true);
+      return;
+    }
     setError('');
     void audio.play().catch(() => {
       setIsPlaying(false);
-      setError('Не вдалося відтворити аудіо. Перевір наявність файлу.');
+      setError(playbackErrorMessage());
     });
   };
 
@@ -157,7 +308,7 @@ export default function MusicPlayer() {
             playAfterLoadRef.current = false;
             void audioRef.current?.play().catch(() => {
               setIsPlaying(false);
-              setError('Не вдалося відтворити аудіо. Перевір наявність файлу.');
+              setError(playbackErrorMessage());
             });
           }
         }}
@@ -168,7 +319,8 @@ export default function MusicPlayer() {
         onError={() => {
           setIsLoading(false);
           setIsPlaying(false);
-          setError('Не вдалося завантажити трек. Перевір файл у public/audio.');
+          playAfterLoadRef.current = false;
+          setError(playbackErrorMessage());
         }}
         onEnded={handleEnded}
         className="hidden"
@@ -176,7 +328,7 @@ export default function MusicPlayer() {
 
       <section className="cyber-panel border-cyber-border/80 shadow-2xl">
         {expanded && (
-          <div className="p-4 sm:p-5 border-b border-cyber-border/70">
+          <div className="p-4 sm:p-5 border-b border-cyber-border/70 max-h-[calc(100vh-6rem)] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between gap-3 mb-4">
               <div>
                 <h2 className="text-sm font-bold flex items-center gap-2">
@@ -198,11 +350,19 @@ export default function MusicPlayer() {
             </div>
 
             <div className="flex items-center gap-3 mb-4">
-              <div
-                className={`w-14 h-14 shrink-0 rounded-xl bg-gradient-to-br ${track.artwork} flex items-center justify-center shadow-lg`}
-              >
-                <Music2 size={24} className="text-white" />
-              </div>
+              {track.artworkUrl ? (
+                <img
+                  src={track.artworkUrl}
+                  alt=""
+                  className="w-14 h-14 shrink-0 rounded-xl object-cover shadow-lg"
+                />
+              ) : (
+                <div
+                  className={`w-14 h-14 shrink-0 rounded-xl bg-gradient-to-br ${track.artwork} flex items-center justify-center shadow-lg`}
+                >
+                  <Music2 size={24} className="text-white" />
+                </div>
+              )}
               <div className="min-w-0">
                 <p className="text-sm font-bold truncate">{track.title}</p>
                 <p className="text-xs text-cyber-muted truncate">{track.artist}</p>
@@ -290,45 +450,116 @@ export default function MusicPlayer() {
             </div>
 
             <div className="mt-4">
-              <h3 className="text-[10px] uppercase tracking-widest text-cyber-muted mb-2">
-                Плейлист
-              </h3>
               <div className="space-y-1">
-                {MUSIC_TRACKS.map((item, index) => (
+                <MusicCatalogSearch
+                  playlistTrackIds={tracks.map((item) => item.id)}
+                  onAddTrack={addAppleTrack}
+                />
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <h3 className="text-[10px] uppercase tracking-widest text-cyber-muted">
+                    Плейлист
+                  </h3>
                   <button
                     type="button"
-                    key={item.id}
-                    onClick={() => selectTrack(index)}
-                    className={`w-full flex items-center gap-2 p-2 rounded-lg text-left transition-colors ${
-                      index === trackIndex
-                        ? 'bg-neon-blue/10 text-neon-blue'
-                        : 'hover:bg-cyber-surface text-cyber-text'
-                    }`}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg border border-cyber-border text-[9px] text-cyber-muted hover:text-neon-blue hover:border-neon-blue/40"
                   >
-                    <span className={`w-7 h-7 rounded-md bg-gradient-to-br ${item.artwork} flex items-center justify-center`}>
-                      <Music2 size={13} className="text-white" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-xs font-semibold truncate">{item.title}</span>
-                      <span className="block text-[10px] text-cyber-muted">{item.artist}</span>
-                    </span>
-                    {index === trackIndex && isPlaying && (
-                      <span className="text-[9px] uppercase tracking-wider">грає</span>
-                    )}
+                    <FolderOpen size={12} />
+                    Додати файл
                   </button>
-                ))}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac"
+                    multiple
+                    onChange={addLocalFiles}
+                    className="hidden"
+                    aria-label="Додати власні аудіофайли"
+                  />
+                </div>
+                <input
+                  type="search"
+                  value={playlistQuery}
+                  onChange={(event) => setPlaylistQuery(event.target.value)}
+                  placeholder="Пошук у плейлисті"
+                  className="w-full bg-cyber-surface border border-cyber-border rounded-lg px-3 py-2 mb-2 text-[10px] text-cyber-text placeholder:text-cyber-muted/70 focus:border-neon-blue focus:outline-none"
+                  aria-label="Пошук у плейлисті"
+                />
+                <div className="space-y-1 max-h-40 overflow-y-auto">
+                  {visibleTracks.map((item) => {
+                    const active = item.id === track.id;
+                    return (
+                      <div
+                        key={item.id}
+                        className={`flex items-center gap-1 rounded-lg ${
+                          active ? 'bg-neon-blue/10' : 'hover:bg-cyber-surface'
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => selectTrack(item.id)}
+                          className={`min-w-0 flex-1 flex items-center gap-2 p-2 rounded-lg text-left ${
+                            active ? 'text-neon-blue' : 'text-cyber-text'
+                          }`}
+                        >
+                          {item.artworkUrl ? (
+                            <img
+                              src={item.artworkUrl}
+                              alt=""
+                              className="w-7 h-7 shrink-0 rounded-md object-cover"
+                            />
+                          ) : (
+                            <span className={`w-7 h-7 shrink-0 rounded-md bg-gradient-to-br ${item.artwork} flex items-center justify-center`}>
+                              <Music2 size={13} className="text-white" />
+                            </span>
+                          )}
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-xs font-semibold truncate">{item.title}</span>
+                            <span className="block text-[10px] text-cyber-muted truncate">
+                              {item.artist}
+                              {item.isPreview ? ' · прев’ю' : ''}
+                              {item.isLocal ? ' · локальний файл' : ''}
+                            </span>
+                          </span>
+                          {active && isPlaying && (
+                            <span className="text-[9px] uppercase tracking-wider">грає</span>
+                          )}
+                        </button>
+                        {(item.isLocal || item.isPreview) && (
+                          <button
+                            type="button"
+                            onClick={() => removeTrack(item.id)}
+                            className="p-2 text-cyber-muted hover:text-neon-red"
+                            aria-label={`Видалити ${item.title} з плейлиста`}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {visibleTracks.length === 0 && (
+                    <p className="text-[10px] text-cyber-muted text-center py-3">
+                      У плейлисті немає відповідних треків.
+                    </p>
+                  )}
+                </div>
               </div>
               <p className="text-[9px] text-cyber-muted mt-2">
-                Демо-треки можна замінити власними файлами в public/audio та списку src/musicTracks.ts.
+                Локальні файли доступні до закриття вкладки. Онлайн-прев’ю зберігаються у плейлисті браузера.
               </p>
             </div>
           </div>
         )}
 
         <div className="flex items-center gap-2 p-2.5 sm:p-3">
-          <div className={`w-10 h-10 shrink-0 rounded-lg bg-gradient-to-br ${track.artwork} flex items-center justify-center`}>
-            <Music2 size={18} className="text-white" />
-          </div>
+          {track.artworkUrl ? (
+            <img src={track.artworkUrl} alt="" className="w-10 h-10 shrink-0 rounded-lg object-cover" />
+          ) : (
+            <div className={`w-10 h-10 shrink-0 rounded-lg bg-gradient-to-br ${track.artwork} flex items-center justify-center`}>
+              <Music2 size={18} className="text-white" />
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <p className="text-xs font-bold truncate">{track.title}</p>
             <p className="text-[10px] text-cyber-muted truncate">{track.artist}</p>
