@@ -28,11 +28,13 @@ import { EQUIPMENT_LABELS } from '@/weightedLibrary';
 import { ExerciseInstruction } from '@/components/ExerciseInstruction';
 import { workoutXp, updateStreak, type UserProfile } from '@/gamification';
 import { UserProfile as UserProfileCard } from '@/components/UserProfile';
+import { StreakBadge } from '@/components/StreakBadge';
 
 interface Props {
   plan: WorkoutPlan;
   source: 'ai' | 'fallback';
   profile: UserProfile;
+  activeDays: string[];
   onComplete: (
     xpEarned: number,
     streakProfile: UserProfile,
@@ -44,7 +46,7 @@ interface Props {
 
 type ActiveTimerKind = 'work' | 'rest' | 'round' | 'none';
 
-export default function SessionScreen({ plan, source, profile, onComplete, onRestart }: Props) {
+export default function SessionScreen({ plan, source, profile, activeDays, onComplete, onRestart }: Props) {
   const allExercises = useMemo(() => {
     return plan.rounds.flatMap((r, ri) =>
       r.exercises.map((ex, ei) => ({
@@ -104,12 +106,13 @@ export default function SessionScreen({ plan, source, profile, onComplete, onRes
     return (
       <>
         <div className="relative z-10 mb-4">
-          <UserProfileCard profile={profile} compact />
+          <UserProfileCard profile={profile} activeDays={activeDays} compact />
         </div>
         <ReadyView
           plan={plan}
           source={source}
           profile={profile}
+          activeDays={activeDays}
           onStart={() => {
             setPhase('preview');
           }}
@@ -139,6 +142,7 @@ export default function SessionScreen({ plan, source, profile, onComplete, onRes
       plan={plan}
       source={source}
       profile={profile}
+      activeDays={activeDays}
       xpEarned={xpEarned}
       allExercises={allExercises}
       completed={completed}
@@ -165,12 +169,14 @@ function ReadyView({
   plan,
   source,
   profile,
+  activeDays,
   onStart,
   onRestart,
 }: {
   plan: WorkoutPlan;
   source: 'ai' | 'fallback';
   profile: UserProfile;
+  activeDays: string[];
   onStart: () => void;
   onRestart: () => void;
 }) {
@@ -198,7 +204,7 @@ function ReadyView({
         </div>
 
         <div className="mb-6">
-          <UserProfileCard profile={profile} />
+          <UserProfileCard profile={profile} activeDays={activeDays} />
         </div>
 
         <div className="grid grid-cols-3 gap-3 mb-6">
@@ -387,6 +393,7 @@ interface ActiveSessionProps {
   liveXp: number;
   liveCalories: number;
   allDone: boolean;
+  activeDays: string[];
   onFinish: (xpEarned: number) => void;
   onRestart: () => void;
 }
@@ -395,6 +402,7 @@ function ActiveSession({
   plan,
   source,
   profile,
+  activeDays,
   xpEarned,
   allExercises,
   completed,
@@ -618,7 +626,7 @@ function ActiveSession({
             <StatChip icon={CheckCircle2} value={`${doneCount}/${totalSets}`} label="сетів" color="blue" />
           </div>
           <div className="w-full sm:w-auto mt-3 sm:mt-0 sm:ml-4">
-            <UserProfileCard profile={profile} compact />
+            <UserProfileCard profile={profile} activeDays={activeDays} compact />
           </div>
         </div>
         <div className="h-1 bg-cyber-border">

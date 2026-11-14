@@ -1,13 +1,19 @@
 import { Trophy } from 'lucide-react';
 import type { UserProfile } from '@/gamification';
 import { xpForNextLevel, levelTitle } from '@/gamification';
+import { StreakBadge } from '@/components/StreakBadge';
 
 interface UserProfileProps {
   profile: UserProfile;
+  activeDays: string[];
   compact?: boolean;
 }
 
-export function UserProfile({ profile, compact = false }: UserProfileProps) {
+export function UserProfile({
+  profile,
+  activeDays,
+  compact = false,
+}: UserProfileProps) {
   const { title, color } = levelTitle(profile.level);
   const next = xpForNextLevel(profile.level);
   const percent = next > 0 ? Math.round((profile.xp / next) * 100) : 100;
@@ -28,6 +34,7 @@ export function UserProfile({ profile, compact = false }: UserProfileProps) {
             <span className={`text-[10px] sm:text-xs font-semibold uppercase tracking-wider ${color}`}>
               {title}
             </span>
+            <StreakBadge profile={profile} activeDays={activeDays} compact />
           </div>
           <p className="text-[10px] sm:text-xs text-cyber-muted mt-0.5">
             {profile.totalXpEarned} XP загалом · {profile.totalWorkouts} {profile.totalWorkouts === 1 ? 'тренування' : 'тренувань'}
