@@ -6,6 +6,7 @@ import { generateWorkout, getApiKey } from '@/openrouter';
 import type { SessionInput, WorkoutPlan } from '@/types';
 import { loadProfile, saveProfile, awardXp, type UserProfile } from '@/gamification';
 import { UserProfile as UserProfileCard } from '@/components/UserProfile';
+import { StreakTracker } from '@/components/StreakTracker';
 import { LevelUpModal } from '@/components/LevelUpModal';
 
 type Screen = 'setup' | 'session';
@@ -48,10 +49,14 @@ function App() {
     refreshKey();
   };
 
-  const handleFinish = (xpEarned: number) => {
-    const { profile: newProfile, leveledUp } = awardXp(profile, xpEarned);
+  const handleFinish = (
+    xpEarned: number,
+    streakProfile: UserProfile,
+  ) => {
+    const { profile: newProfile, leveledUp } = awardXp(streakProfile, xpEarned);
     setProfile(newProfile);
     saveProfile(newProfile);
+
     if (leveledUp) {
       setLevelUp({
         open: true,
@@ -74,6 +79,7 @@ function App() {
           <div className="relative z-10 mb-4">
             <UserProfileCard profile={profile} compact />
           </div>
+          <StreakTracker profile={profile} activeDays={[]} />
           <SetupScreen
             onGenerate={handleGenerate}
             onOpenSettings={() => setSettingsOpen(true)}
@@ -87,8 +93,8 @@ function App() {
           plan={plan}
           source={source}
           profile={profile}
-          onComplete={(xpEarned: number) => {
-            handleFinish(xpEarned);
+          onComplete={(xpEarned: number, streakProfile: UserProfile) => {
+            handleFinish(xpEarned, streakProfile);
             setScreen('setup');
           }}
           onRestart={handleRestart}

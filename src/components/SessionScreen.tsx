@@ -26,14 +26,19 @@ import { pluralizeUk } from '@/types';
 import { formatTime } from '@/useCountdown';
 import { EQUIPMENT_LABELS } from '@/weightedLibrary';
 import { ExerciseInstruction } from '@/components/ExerciseInstruction';
-import { workoutXp } from '@/gamification';
+import { workoutXp, updateStreak, type UserProfile } from '@/gamification';
 import { UserProfile as UserProfileCard } from '@/components/UserProfile';
 
 interface Props {
   plan: WorkoutPlan;
   source: 'ai' | 'fallback';
-  profile: { level: number; xp: number; totalXpEarned: number; totalWorkouts: number };
-  onComplete: (xpEarned: number) => void;
+  profile: UserProfile;
+  onComplete: (
+    xpEarned: number,
+    streakProfile: UserProfile,
+    streakBonusXp: number,
+    streakMilestone: number | null,
+  ) => void;
   onRestart: () => void;
 }
 
@@ -66,20 +71,33 @@ export default function SessionScreen({ plan, source, profile, onComplete, onRes
 
   const allDone = doneCount === totalSets && totalSets > 0;
 
-  const xpEarned = workoutXp({
+  // Оновлюємо стрік та рахуємо бонусний XP, якщо тренування завершено
+  let streakBonusXp = 0;
+  let streakMilestone: number | null = null;
+  let streakUpdatedProfile = profile;
+
+  if (allDone) {
+    const streakResult = updateStreak(profile);
+    streakUpdatedProfile = streakResult.profile;
+    streakBonusXp = streakResult.streakBonusXp;
+    streakMilestone = streakResult.streakMilestone;
+  }
+
+  const baseWorkoutXp = workoutXp({
     durationMin: plan.durationMin,
     completedSets: doneCount,
     totalSets,
     completed: allDone,
   });
+  const xpEarned = baseWorkoutXp + streakBonusXp;
 
   const handleFinish = () => {
     setPhase('finished');
-    onComplete(xpEarned);
+    onComplete(xpEarned, streakUpdatedProfile, streakBonusXp, streakMilestone);
   };
 
   if (phase === 'finished') {
-    return <FinishedView plan={plan} doneCount={doneCount} totalSets={totalSets} liveCalories={liveCalories} xpEarned={xpEarned} onRestart={onRestart} />;
+    return <FinishedView plan={plan} doneCount={doneCount} totalSets={totalSets} liveCalories={liveCalories} xpEarned={xpEarned} streakBonusXp={streakBonusXp} streakMilestone={streakMilestone} onRestart={onRestart} />;
   }
 
   if (phase === 'ready') {
@@ -152,7 +170,7 @@ function ReadyView({
 }: {
   plan: WorkoutPlan;
   source: 'ai' | 'fallback';
-  profile: { level: number; xp: number; totalXpEarned: number; totalWorkouts: number };
+  profile: UserProfile;
   onStart: () => void;
   onRestart: () => void;
 }) {
@@ -352,7 +370,7 @@ function PreviewView({
 interface ActiveSessionProps {
   plan: WorkoutPlan;
   source: 'ai' | 'fallback';
-  profile: { level: number; xp: number; totalXpEarned: number; totalWorkouts: number };
+  profile: UserProfile;
   xpEarned: number;
   allExercises: { roundIndex: number; exIndex: number; exercise: Exercise; round: Round }[];
   completed: Set<string>;
@@ -913,6 +931,8 @@ function FinishedView({
   totalSets,
   liveCalories,
   xpEarned,
+  streakBonusXp,
+  streakMilestone,
   onRestart,
 }: {
   plan: WorkoutPlan;
@@ -920,8 +940,13 @@ function FinishedView({
   totalSets: number;
   liveCalories: number;
   xpEarned: number;
+  streakBonusXp: number;
+  streakMilestone: number | null;
   onRestart: () => void;
 }) {
+  const streakBonusLabel = streakMilestone
+    ? `${streakMilestone} днів підряд`
+    : '';
   return (
     <div className="min-h-screen grid-bg relative overflow-hidden flex items-center justify-center p-4">
       <div className="pointer-events-none absolute inset-0 bg-neon-green/5" />
@@ -941,6 +966,21 @@ function FinishedView({
           <ResultStat icon={Flame} value={liveCalories} label="Ккал" color="orange" />
           <ResultStat icon={Zap} value={xpEarned} label="+XP" color="yellow" />
         </div>
+
+        {streakBonusXp > 0 && streakMilestone && (
+          <div className="cyber-panel p-4 rounded-xl border border-neon-amber/40 bg-neon-amber/10 mb-6 animate-fade-in">
+            <div className="flex items-center gap-2 mb-1">
+              <Zap size={16} className="text-neon-amber animate-pulse" />
+              <span className="text-xs font-bold text-neon-amber uppercase tracking-wider">
+                Бонус стріку!
+              </span>
+            </div>
+            <div className="text-sm font-mono font-bold text-neon-amber mb-1">
+              +{streakBonusXp} XP
+            </div>
+            <p className="text-[11px] text-cyber-muted">{streakBonusLabel} — ви зберегли серію тренувань!</p>
+          </div>
+        )}
 
         <div className="cyber-panel p-5 text-left mb-6">
           <h3 className="text-xs uppercase tracking-widest text-cyber-muted mb-2 flex items-center gap-2">
