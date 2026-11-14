@@ -4,6 +4,59 @@
 
 :root {
   color-scheme: dark;
+  --cyber-bg: 9 13 22;
+  --cyber-surface: 15 22 38;
+  --cyber-surface2: 19 28 47;
+  --cyber-border: 30 41 63;
+  --cyber-muted: 124 138 168;
+  --cyber-text: 230 236 255;
+  --neon-blue: 59 130 246;
+  --neon-pink: 236 72 153;
+  --neon-green: 16 185 129;
+  --neon-amber: 245 158 11;
+  --neon-red: 239 68 68;
+}
+
+:root[data-theme='ocean'] {
+  --cyber-bg: 5 17 26;
+  --cyber-surface: 8 27 39;
+  --cyber-surface2: 12 38 53;
+  --cyber-border: 25 58 74;
+  --cyber-muted: 135 164 178;
+  --cyber-text: 225 246 255;
+  --neon-blue: 34 211 238;
+  --neon-pink: 45 212 191;
+  --neon-green: 74 222 128;
+  --neon-amber: 250 204 21;
+  --neon-red: 248 113 113;
+}
+
+:root[data-theme='violet'] {
+  --cyber-bg: 15 10 26;
+  --cyber-surface: 25 17 42;
+  --cyber-surface2: 34 23 55;
+  --cyber-border: 58 42 82;
+  --cyber-muted: 161 148 184;
+  --cyber-text: 245 239 255;
+  --neon-blue: 167 139 250;
+  --neon-pink: 244 114 182;
+  --neon-green: 52 211 153;
+  --neon-amber: 251 191 36;
+  --neon-red: 248 113 113;
+}
+
+:root[data-theme='forest'] {
+  --cyber-bg: 8 18 14;
+  --cyber-surface: 14 29 22;
+  --cyber-surface2: 18 40 30;
+  --cyber-border: 37 63 48;
+  --cyber-muted: 140 164 146;
+  --cyber-text: 233 247 235;
+  --neon-blue: 74 222 128;
+  --neon-pink: 163 230 53;
+  --neon-green: 34 197 94;
+  --neon-amber: 251 191 36;
+  --neon-red: 248 113 113;
 }
 
 html, body, #root {
@@ -11,8 +64,8 @@ html, body, #root {
 }
 
 body {
-  background: #090d16;
-  color: #e6ecff;
+  background: rgb(var(--cyber-bg));
+  color: rgb(var(--cyber-text));
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -23,14 +76,14 @@ body {
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #0f1626;
+  background: rgb(var(--cyber-surface));
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e293f;
+  background: rgb(var(--cyber-border));
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3b82f6;
+  background: rgb(var(--neon-blue));
 }
 
 @layer components {
@@ -38,13 +91,13 @@ body {
     @apply bg-cyber-surface/80 border border-cyber-border rounded-2xl backdrop-blur-sm;
   }
   .neon-divider {
-    background: linear-gradient(90deg, transparent, #3b82f6, transparent);
+    background: linear-gradient(90deg, transparent, rgb(var(--neon-blue)), transparent);
     height: 1px;
   }
   .grid-bg {
     background-image:
-      linear-gradient(rgba(59, 130, 246, 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(59, 130, 246, 0.05) 1px, transparent 1px);
+      linear-gradient(rgb(var(--neon-blue) / 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(var(--neon-blue) / 0.06) 1px, transparent 1px);
     background-size: 40px 40px;
   }
   .text-glow-blue {
@@ -56,4 +109,33 @@ body {
   .text-glow-green {
     text-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
   }
+}
+
+:root[data-background='aurora'] .grid-bg {
+  background-image:
+    radial-gradient(ellipse at 12% 18%, rgb(var(--neon-blue) / 0.18), transparent 42%),
+    radial-gradient(ellipse at 88% 28%, rgb(var(--neon-pink) / 0.14), transparent 40%),
+    radial-gradient(ellipse at 55% 100%, rgb(var(--neon-green) / 0.1), transparent 45%);
+  background-size: auto;
+}
+
+:root[data-background='plain'] .grid-bg {
+  background-image: none;
+}
+
+[data-background-preview='grid'] {
+  background-image:
+    linear-gradient(rgb(var(--neon-blue) / 0.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--neon-blue) / 0.16) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+[data-background-preview='aurora'] {
+  background-image:
+    radial-gradient(ellipse at 15% 20%, rgb(var(--neon-blue) / 0.6), transparent 55%),
+    radial-gradient(ellipse at 85% 70%, rgb(var(--neon-pink) / 0.45), transparent 55%);
+}
+
+[data-background-preview='plain'] {
+  background-image: linear-gradient(135deg, rgb(var(--cyber-surface2)), rgb(var(--cyber-bg)));
 }

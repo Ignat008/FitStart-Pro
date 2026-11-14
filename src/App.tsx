@@ -8,17 +8,27 @@ import { loadProfile, saveProfile, awardXp, type UserProfile } from '@/gamificat
 import { UserProfile as UserProfileCard } from '@/components/UserProfile';
 import { LevelUpModal } from '@/components/LevelUpModal';
 import { ChallengesWidget } from '@/components/ChallengesWidget';
+import AppearanceScreen from '@/components/AppearanceScreen';
+import {
+  applyAppearance,
+  loadAppearance,
+  saveAppearance,
+  type AppearanceSettings,
+} from '@/appearance';
 
 type Screen = 'setup' | 'session';
+type Tab = 'workout' | 'appearance';
 
 function App() {
   const [screen, setScreen] = useState<Screen>('setup');
+  const [activeTab, setActiveTab] = useState<Tab>('workout');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(false);
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState<WorkoutPlan | null>(null);
   const [source, setSource] = useState<'ai' | 'fallback'>('fallback');
   const [profile, setProfile] = useState<UserProfile>(loadProfile);
+  const [appearance, setAppearance] = useState<AppearanceSettings>(loadAppearance);
   const [levelUp, setLevelUp] = useState<{
     open: boolean;
     oldLevel: number;
@@ -33,6 +43,10 @@ function App() {
     refreshKey();
   }, []);
 
+  useEffect(() => {
+    applyAppearance(appearance);
+  }, [appearance]);
+
   const handleGenerate = async (input: SessionInput) => {
     setLoading(true);
     setPlan(null);
@@ -45,8 +59,14 @@ function App() {
 
   const handleRestart = () => {
     setScreen('setup');
+    setActiveTab('workout');
     setPlan(null);
     refreshKey();
+  };
+
+  const handleAppearanceChange = (nextAppearance: AppearanceSettings) => {
+    setAppearance(nextAppearance);
+    saveAppearance(nextAppearance);
   };
 
   const handleFinish = (
@@ -83,16 +103,26 @@ function App() {
     <>
       {screen === 'setup' && (
         <>
-          <div className="relative z-10 mb-4">
-            <UserProfileCard profile={profile} activeDays={profile.workoutDates} compact />
+          <div className={activeTab === 'workout' ? '' : 'hidden'}>
+            <div className="relative z-10 mb-4">
+              <UserProfileCard profile={profile} activeDays={profile.workoutDates} compact />
+            </div>
+            <ChallengesWidget />
+            <SetupScreen
+              onGenerate={handleGenerate}
+              onOpenSettings={() => setSettingsOpen(true)}
+              onOpenAppearance={() => setActiveTab('appearance')}
+              hasApiKey={hasApiKey}
+              loading={loading}
+            />
           </div>
-          <ChallengesWidget />
-          <SetupScreen
-            onGenerate={handleGenerate}
-            onOpenSettings={() => setSettingsOpen(true)}
-            hasApiKey={hasApiKey}
-            loading={loading}
-          />
+          {activeTab === 'appearance' && (
+            <AppearanceScreen
+              appearance={appearance}
+              onChange={handleAppearanceChange}
+              onBack={() => setActiveTab('workout')}
+            />
+          )}
         </>
       )}
       {screen === 'session' && plan && (

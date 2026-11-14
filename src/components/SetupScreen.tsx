@@ -5,6 +5,7 @@ import {
   Footprints,
   Zap,
   Settings,
+  Palette,
   Flame,
   Activity,
   Timer,
@@ -33,6 +34,7 @@ import type { Instruction } from '@/types';
 interface Props {
   onGenerate: (input: SessionInput) => void;
   onOpenSettings: () => void;
+  onOpenAppearance: () => void;
   hasApiKey: boolean;
   loading: boolean;
 }
@@ -72,7 +74,13 @@ interface SelectedExercise {
   isEditing?: boolean;
 }
 
-export default function SetupScreen({ onGenerate, onOpenSettings, hasApiKey, loading }: Props) {
+export default function SetupScreen({
+  onGenerate,
+  onOpenSettings,
+  onOpenAppearance,
+  hasApiKey,
+  loading,
+}: Props) {
   const [muscle, setMuscle] = useState<MuscleGroup | null>(null);
   const [barrier, setBarrier] = useState<Barrier | null>(null);
   const [level, setLevel] = useState<Level | null>(null);
@@ -228,17 +236,26 @@ export default function SetupScreen({ onGenerate, onOpenSettings, hasApiKey, loa
           </div>
         </div>
 
-        <button
-          onClick={onOpenSettings}
-          className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl border border-cyber-border hover:border-neon-blue/50 bg-cyber-surface/60 text-xs sm:text-sm transition-all group"
-        >
-          <Settings size={15} className="text-neon-blue group-hover:rotate-45 transition-transform duration-300" />
-          <span className="font-medium">API / Налаштування</span>
-          <span
-            className={`w-2 h-2 rounded-full ${hasApiKey ? 'bg-neon-green animate-pulse' : 'bg-cyber-muted'}`}
-            title={hasApiKey ? 'Ключ активний' : 'Fallback-режим'}
-          />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onOpenAppearance}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl border border-cyber-border hover:border-neon-pink/50 bg-cyber-surface/60 text-xs sm:text-sm transition-all"
+          >
+            <Palette size={15} className="text-neon-pink" />
+            <span className="font-medium">Вигляд</span>
+          </button>
+          <button
+            onClick={onOpenSettings}
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl border border-cyber-border hover:border-neon-blue/50 bg-cyber-surface/60 text-xs sm:text-sm transition-all group"
+          >
+            <Settings size={15} className="text-neon-blue group-hover:rotate-45 transition-transform duration-300" />
+            <span className="hidden sm:inline font-medium">API / Налаштування</span>
+            <span
+              className={`w-2 h-2 rounded-full ${hasApiKey ? 'bg-neon-green animate-pulse' : 'bg-cyber-muted'}`}
+              title={hasApiKey ? 'Ключ активний' : 'Fallback-режим'}
+            />
+          </button>
+        </div>
       </header>
 
       <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-8 py-8 sm:py-12">

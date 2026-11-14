@@ -5,19 +5,19 @@ export default {
     extend: {
       colors: {
         cyber: {
-          bg: '#090d16',
-          surface: '#0f1626',
-          surface2: '#131c2f',
-          border: '#1e293f',
-          muted: '#7c8aa8',
-          text: '#e6ecff',
+          bg: 'rgb(var(--cyber-bg) / <alpha-value>)',
+          surface: 'rgb(var(--cyber-surface) / <alpha-value>)',
+          surface2: 'rgb(var(--cyber-surface2) / <alpha-value>)',
+          border: 'rgb(var(--cyber-border) / <alpha-value>)',
+          muted: 'rgb(var(--cyber-muted) / <alpha-value>)',
+          text: 'rgb(var(--cyber-text) / <alpha-value>)',
         },
         neon: {
-          blue: '#3b82f6',
-          pink: '#ec4899',
-          green: '#10b981',
-          amber: '#f59e0b',
-          red: '#ef4444',
+          blue: 'rgb(var(--neon-blue) / <alpha-value>)',
+          pink: 'rgb(var(--neon-pink) / <alpha-value>)',
+          green: 'rgb(var(--neon-green) / <alpha-value>)',
+          amber: 'rgb(var(--neon-amber) / <alpha-value>)',
+          red: 'rgb(var(--neon-red) / <alpha-value>)',
         },
       },
       fontFamily: {
