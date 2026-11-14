@@ -55,7 +55,7 @@ function App() {
     challengeBonusXp: number,
     challengeRewardTitle?: string,
   ) => {
-    const { profile: newProfile, leveledUp } = awardXp(streakProfile, xpEarned + challengeBonusXp);
+    const { profile: newProfile, leveledUp } = awardXp(streakProfile, xpEarned);
     setProfile(newProfile);
     saveProfile(newProfile);
 
@@ -70,7 +70,7 @@ function App() {
         oldLevel: profile.level,
         newLevel: newProfile.level,
         profile: newProfile,
-        xpEarned: xpEarned + challengeBonusXp,
+        xpEarned,
       });
     }
   };
@@ -113,7 +113,6 @@ function App() {
           activeDays={profile.workoutDates}
           onComplete={(xpEarned: number, streakProfile: UserProfile, challengeBonusXp: number, challengeRewardTitle?: string) => {
             handleFinish(xpEarned, streakProfile, challengeBonusXp, challengeRewardTitle);
-            setScreen('setup');
           }}
           onRestart={handleRestart}
         />

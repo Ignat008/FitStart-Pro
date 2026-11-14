@@ -74,6 +74,14 @@ export default function SessionScreen({ plan, source, profile, activeDays, onCom
   const [phase, setPhase] = useState<'ready' | 'preview' | 'active' | 'finished'>('ready');
   const [challengeDataLoaded, setChallengeDataLoaded] = useState(false);
   const challengeCompletionProcessed = useRef(false);
+  const completionHandled = useRef(false);
+  const [finishResult, setFinishResult] = useState<{
+    xpEarned: number;
+    streakBonusXp: number;
+    streakMilestone: number | null;
+    challengeBonusXp: number;
+    challengeRewardTitle?: string;
+  } | null>(null);
 
   const totalSets = allExercises.length;
   const doneCount = completed.size;
@@ -180,13 +188,36 @@ export default function SessionScreen({ plan, source, profile, activeDays, onCom
   });
   const xpEarned = baseWorkoutXp + streakBonusXp + challengeBonusXp;
 
-  const handleFinish = () => {
+  const handleFinish = useCallback(() => {
+    if (completionHandled.current) return;
+    completionHandled.current = true;
+    setFinishResult({
+      xpEarned,
+      streakBonusXp,
+      streakMilestone,
+      challengeBonusXp,
+      challengeRewardTitle,
+    });
     setPhase('finished');
     onComplete(xpEarned, streakUpdatedProfile, challengeBonusXp, challengeRewardTitle);
-  };
+  }, [
+    onComplete,
+    xpEarned,
+    streakUpdatedProfile,
+    streakBonusXp,
+    streakMilestone,
+    challengeBonusXp,
+    challengeRewardTitle,
+  ]);
+
+  useEffect(() => {
+    if (allDone && activeTimer === 'none' && challengeDataLoaded) {
+      handleFinish();
+    }
+  }, [allDone, activeTimer, challengeDataLoaded, handleFinish]);
 
   if (phase === 'finished') {
-    return <FinishedView plan={plan} doneCount={doneCount} totalSets={totalSets} liveCalories={liveCalories} xpEarned={xpEarned} streakBonusXp={streakBonusXp} streakMilestone={streakMilestone} challengeBonusXp={challengeBonusXp} challengeRewardTitle={challengeRewardTitle} onRestart={onRestart} />;
+    return <FinishedView plan={plan} doneCount={doneCount} totalSets={totalSets} liveCalories={liveCalories} xpEarned={finishResult?.xpEarned ?? xpEarned} streakBonusXp={finishResult?.streakBonusXp ?? streakBonusXp} streakMilestone={finishResult?.streakMilestone ?? streakMilestone} challengeBonusXp={finishResult?.challengeBonusXp ?? challengeBonusXp} challengeRewardTitle={finishResult?.challengeRewardTitle ?? challengeRewardTitle} onRestart={onRestart} />;
   }
 
   if (phase === 'ready') {
