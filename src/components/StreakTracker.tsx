@@ -7,6 +7,7 @@ import type { UserProfile } from '@/gamification';
 import {
   getCalendarDays,
   isSameDay,
+  parseWorkoutDate,
   STREAK_BONUSES,
   levelTitle,
   xpForNextLevel,
@@ -31,8 +32,8 @@ export function StreakTracker({
 
   const isActive = (d: Date) =>
     activeDays.some((iso) => {
-      const date = new Date(iso);
-      return isSameDay(d, date);
+      const date = parseWorkoutDate(iso);
+      return date !== null && isSameDay(d, date);
     });
 
   const today = new Date();

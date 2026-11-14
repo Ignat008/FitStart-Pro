@@ -15,6 +15,26 @@ const BASE_XP_PER_WORKOUT = 50; // зменшено для поступовог�
 const XP_PER_MINUTE = 5;
 const XP_PER_SET = 3;
 
+function localDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function parseWorkoutDate(value: string): Date | null {
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  const date = dateOnly
+    ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+    : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function workoutDateKey(value: string): string | null {
+  const date = parseWorkoutDate(value);
+  return date ? localDateKey(date) : null;
+}
+
 export const STREAK_BONUSES: Record<number, number> = {
   7: 100,
   30: 300,
@@ -98,20 +118,27 @@ export function updateStreak(
   profile: UserProfile,
 ): { profile: UserProfile; streakBonusXp: number; streakMilestone: number | null } {
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayStr = today.toISOString().slice(0, 10);
+  const todayStr = localDateKey(today);
 
   // Якщо вже тренувались сьогодні — стрік не змінюємо, бонусів немає
-  if (profile.workoutDates.includes(todayStr)) {
+  const lastWorkoutKey = profile.lastWorkoutDate
+    ? workoutDateKey(profile.lastWorkoutDate)
+    : null;
+  if (
+    lastWorkoutKey === todayStr ||
+    profile.workoutDates.some((date) => workoutDateKey(date) === todayStr)
+  ) {
     return { profile, streakBonusXp: 0, streakMilestone: null };
   }
 
   let newStreak = profile.currentStreak;
 
-  if (profile.lastWorkoutDate) {
-    const lastDate = new Date(profile.lastWorkoutDate);
-    lastDate.setHours(0, 0, 0, 0);
-    const diffDays = Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+  if (lastWorkoutKey) {
+    const [year, month, day] = lastWorkoutKey.split('-').map(Number);
+    const [todayYear, todayMonth, todayDay] = todayStr.split('-').map(Number);
+    const lastDateUtc = Date.UTC(year, month - 1, day);
+    const todayDateUtc = Date.UTC(todayYear, todayMonth - 1, todayDay);
+    const diffDays = Math.round((todayDateUtc - lastDateUtc) / (1000 * 60 * 60 * 24));
 
     if (diffDays === 1) {
       newStreak += 1; // тренувались вчора — продовжуємо стрік
@@ -166,7 +193,6 @@ export function awardXp(
       xp: xpInLevel,
       totalWorkouts: profile.totalWorkouts + 1,
       totalXpEarned: newTotalXp,
-      lastWorkoutDate: new Date().toISOString(),
     },
     leveledUp,
     levelsGained: level - oldLevel,
