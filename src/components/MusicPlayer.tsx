@@ -295,7 +295,11 @@ export default function MusicPlayer() {
   };
 
   return (
-    <div className="fixed inset-x-3 bottom-3 z-[60] mx-auto max-w-2xl">
+    <div
+      className={`fixed bottom-3 right-3 z-[60] max-w-2xl ${
+        expanded ? 'left-3 w-auto' : 'w-fit'
+      } sm:left-3 sm:right-3 sm:mx-auto sm:w-auto`}
+    >
       <audio
         ref={audioRef}
         src={track.src}
@@ -552,7 +556,17 @@ export default function MusicPlayer() {
           </div>
         )}
 
-        <div className="flex items-center gap-2 p-2.5 sm:p-3">
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="flex sm:hidden w-12 h-12 items-center justify-center rounded-full bg-neon-blue text-white shadow-lg"
+          aria-label="Відкрити музичний плеєр"
+          aria-expanded={expanded}
+        >
+          <Music2 size={20} />
+        </button>
+
+        <div className={`${expanded ? 'flex' : 'hidden'} sm:flex items-center gap-2 p-2.5 sm:p-3`}>
           {track.artworkUrl ? (
             <img src={track.artworkUrl} alt="" className="w-10 h-10 shrink-0 rounded-lg object-cover" />
           ) : (
