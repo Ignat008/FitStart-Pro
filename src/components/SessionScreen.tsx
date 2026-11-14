@@ -28,6 +28,7 @@ import { EQUIPMENT_LABELS } from '@/weightedLibrary';
 import { ExerciseInstruction } from '@/components/ExerciseInstruction';
 import {
   getActiveChallenge,
+  getActiveDailyChallenges,
   loadChallenges,
   saveChallenges,
   saveLeaderboardEntry,
@@ -114,33 +115,79 @@ export default function SessionScreen({ plan, source, profile, activeDays, onCom
     challengeData.challenges,
     challengeData.progress,
   );
-  const challengeUpdate =
-    allDone && challengeProgress
-      ? updateChallengeProgress(
-          challengeProgress,
-          challenge,
-          challengeProgress.progress + (challenge.type === 'workouts' ? 1 : 0),
-          challengeProgress.progress +
-            (challenge.type === 'xp' ? baseWorkoutXp + streakBonusXp : 0),
-          challengeProgress.progress + (challenge.type === 'exercises' ? doneCount : 0),
-        )
-      : null;
-  const challengeBonusXp = challengeUpdate?.bonusXp ?? 0;
-  const challengeRewardTitle = challengeBonusXp > 0 ? challenge.rewardTitle : undefined;
+  const activeDailyChallenges = getActiveDailyChallenges(
+    challengeData.challenges,
+    challengeData.progress,
+  );
+  const dailyChallengeUpdates = useMemo(
+    () =>
+      allDone
+        ? activeDailyChallenges.map(({ challenge: dailyChallenge, progress: dailyProgress }) => {
+            const progress = dailyProgress ?? {
+              challengeId: dailyChallenge.id,
+              progress: 0,
+              joinedAt: new Date().toISOString(),
+            };
+            return {
+              challenge: dailyChallenge,
+              result: updateChallengeProgress(
+                progress,
+                dailyChallenge,
+                progress.progress + (dailyChallenge.type === 'workouts' ? 1 : 0),
+                progress.progress +
+                  (dailyChallenge.type === 'xp' ? baseWorkoutXp + streakBonusXp : 0),
+                progress.progress + (dailyChallenge.type === 'exercises' ? doneCount : 0),
+              ),
+            };
+          })
+        : [],
+    [activeDailyChallenges, allDone, baseWorkoutXp, doneCount, streakBonusXp],
+  );
+  const weeklyProgress = challengeProgress ?? {
+    challengeId: challenge.id,
+    progress: 0,
+    joinedAt: new Date().toISOString(),
+  };
+  const challengeUpdate = allDone
+    ? updateChallengeProgress(
+        weeklyProgress,
+        challenge,
+        weeklyProgress.progress + (challenge.type === 'workouts' ? 1 : 0),
+        weeklyProgress.progress + (challenge.type === 'xp' ? baseWorkoutXp + streakBonusXp : 0),
+        weeklyProgress.progress + (challenge.type === 'exercises' ? doneCount : 0),
+      )
+    : null;
+  const challengeBonusXp =
+    dailyChallengeUpdates.reduce((sum, item) => sum + item.result.bonusXp, 0) +
+    (challengeUpdate?.bonusXp ?? 0);
+  const challengeRewardTitle =
+    (challengeUpdate?.bonusXp ?? 0) > 0 ? challenge.rewardTitle : undefined;
   const xpEarned = baseWorkoutXp + streakBonusXp + challengeBonusXp;
 
   const handleFinish = useCallback(() => {
     if (completionHandled.current) return;
     completionHandled.current = true;
-    if (challengeUpdate) {
+    const challengeProgressUpdates = [
+      ...dailyChallengeUpdates.map(({ challenge: dailyChallenge, result }) => ({
+        challenge: dailyChallenge,
+        progress: result.progress,
+      })),
+      ...(challengeUpdate ? [{ challenge, progress: challengeUpdate.progress }] : []),
+    ];
+    if (challengeProgressUpdates.length > 0) {
+      const updatedChallengeIds = new Set(
+        challengeProgressUpdates.map((item) => item.challenge.id),
+      );
       const next = {
         challenges: [
-          ...challengeData.challenges.filter((item) => item.id !== challenge.id),
-          challenge,
+          ...challengeData.challenges.filter((item) => !updatedChallengeIds.has(item.id)),
+          ...challengeProgressUpdates.map((item) => item.challenge),
         ],
         progress: [
-          ...challengeData.progress.filter((item) => item.challengeId !== challenge.id),
-          challengeUpdate.progress,
+          ...challengeData.progress.filter(
+            (item) => !updatedChallengeIds.has(item.challengeId),
+          ),
+          ...challengeProgressUpdates.map((item) => item.progress),
         ],
       };
       saveChallenges(next);
@@ -170,6 +217,7 @@ export default function SessionScreen({ plan, source, profile, activeDays, onCom
     streakMilestone,
     challengeBonusXp,
     challengeRewardTitle,
+    dailyChallengeUpdates,
     challengeUpdate,
     challengeData,
     challenge,
@@ -1095,19 +1143,21 @@ function FinishedView({
           </div>
         )}
 
-        {challengeBonusXp > 0 && challengeRewardTitle && (
+        {challengeBonusXp > 0 && (
           <div className="cyber-panel p-4 rounded-xl border border-neon-pink/40 bg-neon-pink/10 mb-6 animate-fade-in">
             <div className="flex items-center gap-2 mb-1">
               <Trophy size={16} className="text-neon-pink animate-pulse" />
               <span className="text-xs font-bold text-neon-pink uppercase tracking-wider">
-                Чєленідж виконано!
+                Завдання виконано!
               </span>
             </div>
             <div className="text-sm font-mono font-bold text-neon-pink mb-1">
               +{challengeBonusXp} XP
             </div>
             <p className="text-[11px] text-cyber-muted">
-              Нове звання: {challengeRewardTitle}
+              {challengeRewardTitle
+                ? `Нове звання: ${challengeRewardTitle}`
+                : 'Нагорода за виконані щоденні завдання.'}
             </p>
           </div>
         )}

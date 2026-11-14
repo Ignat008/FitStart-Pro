@@ -367,12 +367,71 @@ const DEFAULT_CHALLENGES: WeeklyChallenge[] = [
   },
 ];
 
-/** Повертає початок поточного тижня (понеділок) у форматі ISO дати. */
+const DAILY_CHALLENGES: WeeklyChallenge[] = [
+  {
+    id: 'daily-workout-1',
+    title: 'Не пропускай рух',
+    description: 'Заверши одне тренування сьогодні',
+    type: 'workouts',
+    target: 1,
+    rewardXp: 45,
+  },
+  {
+    id: 'daily-exercises-3',
+    title: 'Три вправи',
+    description: 'Виконай щонайменше 3 вправи',
+    type: 'exercises',
+    target: 3,
+    rewardXp: 30,
+  },
+  {
+    id: 'daily-xp-100',
+    title: 'Щоденний досвід',
+    description: 'Зароби 100 XP за тренування',
+    type: 'xp',
+    target: 100,
+    rewardXp: 35,
+  },
+  {
+    id: 'daily-exercises-5',
+    title: 'П’ять вправ',
+    description: 'Виконай щонайменше 5 вправ',
+    type: 'exercises',
+    target: 5,
+    rewardXp: 40,
+  },
+  {
+    id: 'daily-xp-150',
+    title: 'Більше досвіду',
+    description: 'Зароби 150 XP за тренування',
+    type: 'xp',
+    target: 150,
+    rewardXp: 50,
+  },
+  {
+    id: 'daily-exercises-4',
+    title: 'Повний комплекс',
+    description: 'Виконай щонайменше 4 вправи',
+    type: 'exercises',
+    target: 4,
+    rewardXp: 35,
+  },
+];
+
+/** Повертає початок поточного тижня (понеділок) за місцевою датою. */
 function getWeekStart(date: Date = new Date()): string {
   const d = new Date(date);
   const day = d.getDay(); // 0 = неділя
   const mondayOffset = day === 0 ? -6 : 1 - day; // понеділок = 1
   d.setDate(d.getDate() + mondayOffset);
+  d.setHours(0, 0, 0, 0);
+  return localDateKey(d);
+}
+
+function getLegacyWeekStart(date: Date): string {
+  const d = new Date(date);
+  const day = d.getDay();
+  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
   d.setHours(0, 0, 0, 0);
   return d.toISOString().slice(0, 10);
 }
@@ -440,14 +499,20 @@ export function saveLeaderboardEntry(entry: LeaderboardEntry): void {
 export function getActiveChallenge(
   challenges: WeeklyChallenge[],
   progress: ChallengeProgress[],
+  date: Date = new Date(),
 ): { challenge: WeeklyChallenge; progress: ChallengeProgress | null } {
-  const weekStart = getWeekStart();
-  const challengeIdPrefix = `${weekStart}-`;
-  const existing = progress.find((item) => item.challengeId.startsWith(challengeIdPrefix));
+  const weekStart = getWeekStart(date);
+  const prefixes = [...new Set([weekStart, getLegacyWeekStart(date)])].map((start) => `${start}-`);
+  const existing = progress.find((item) =>
+    prefixes.some((prefix) =>
+      DEFAULT_CHALLENGES.some((definition) => item.challengeId === `${prefix}${definition.id}`),
+    ),
+  );
 
   if (existing) {
     const storedChallenge = challenges.find((item) => item.id === existing.challengeId);
-    const defaultChallengeId = existing.challengeId.slice(challengeIdPrefix.length);
+    const challengePrefix = prefixes.find((prefix) => existing.challengeId.startsWith(prefix))!;
+    const defaultChallengeId = existing.challengeId.slice(challengePrefix.length);
     const challengeDefinition =
       storedChallenge ?? DEFAULT_CHALLENGES.find((item) => item.id === defaultChallengeId);
 
@@ -472,6 +537,28 @@ export function getActiveChallenge(
     weekStart,
   };
   return { challenge, progress: null };
+}
+
+/** Повертає три завдання, закріплені за поточною місцевою датою. */
+export function getActiveDailyChallenges(
+  challenges: WeeklyChallenge[],
+  progress: ChallengeProgress[],
+  date: Date = new Date(),
+): { challenge: WeeklyChallenge; progress: ChallengeProgress | null }[] {
+  const today = localDateKey(date);
+  const dayNumber = Math.floor(Date.parse(`${today}T00:00:00Z`) / (24 * 60 * 60 * 1000));
+  const startIndex =
+    ((dayNumber % DAILY_CHALLENGES.length) + DAILY_CHALLENGES.length) % DAILY_CHALLENGES.length;
+
+  return Array.from({ length: 3 }, (_, offset) => {
+    const definition = DAILY_CHALLENGES[(startIndex + offset) % DAILY_CHALLENGES.length];
+    const id = `${today}-${definition.id}`;
+    const storedChallenge = challenges.find((item) => item.id === id);
+    return {
+      challenge: { ...(storedChallenge ?? definition), id },
+      progress: progress.find((item) => item.challengeId === id) ?? null,
+    };
+  });
 }
 
 /** Оновлює прогрес чєленіджу після тренування або нарахування XP. */
