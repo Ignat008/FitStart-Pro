@@ -26,15 +26,30 @@ import { pluralizeUk } from '@/types';
 import { formatTime } from '@/useCountdown';
 import { EQUIPMENT_LABELS } from '@/weightedLibrary';
 import { ExerciseInstruction } from '@/components/ExerciseInstruction';
-import { workoutXp, updateStreak, type UserProfile } from '@/gamification';
+import {
+  getActiveChallenge,
+  saveChallenges,
+  updateChallengeProgress,
+  workoutXp,
+  updateStreak,
+  type ChallengeProgress,
+  type UserProfile,
+  type WeeklyChallenge,
+} from '@/gamification';
 import { UserProfile as UserProfileCard } from '@/components/UserProfile';
+import { ChallengesWidget } from '@/components/ChallengesWidget';
 
 interface Props {
   plan: WorkoutPlan;
   source: 'ai' | 'fallback';
   profile: UserProfile;
   activeDays: string[];
-  onComplete: (xpEarned: number, streakProfile: UserProfile) => void;
+  onComplete: (
+    xpEarned: number,
+    streakProfile: UserProfile,
+    challengeBonusXp: number,
+    challengeRewardTitle?: string,
+  ) => void;
   onRestart: () => void;
 }
 
@@ -57,6 +72,8 @@ export default function SessionScreen({ plan, source, profile, activeDays, onCom
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [activeTimer, setActiveTimer] = useState<ActiveTimerKind>('none');
   const [phase, setPhase] = useState<'ready' | 'preview' | 'active' | 'finished'>('ready');
+  const [challengeDataLoaded, setChallengeDataLoaded] = useState(false);
+  const challengeCompletionProcessed = useRef(false);
 
   const totalSets = allExercises.length;
   const doneCount = completed.size;
@@ -81,6 +98,7 @@ export default function SessionScreen({ plan, source, profile, activeDays, onCom
         // Ігноруємо помилки читання чєленіджів
       }
     }
+    setChallengeDataLoaded(true);
   }, []);
 
   // Оновлюємо стрік та рахуємо бонусний XP, якщо тренування завершено
@@ -110,10 +128,7 @@ export default function SessionScreen({ plan, source, profile, activeDays, onCom
       joinedAt: new Date().toISOString(),
     };
 
-    const {
-      progress: newProgress,
-      bonusXp,
-    } = updateChallengeProgress(
+    const { bonusXp } = updateChallengeProgress(
       safeProgress,
       challenge,
       profile.totalWorkouts,
@@ -124,17 +139,38 @@ export default function SessionScreen({ plan, source, profile, activeDays, onCom
     challengeBonusXp = bonusXp;
     challengeRewardTitle = challenge.rewardTitle;
 
-    // Зберігаємо оновлений прогрес чєленіджу
-    setChallengeData((prev) => {
-      if (!prev) return prev;
-      const updatedProgress = prev.progress.map((p) =>
-        p.challengeId === challenge.id ? newProgress : p,
-      );
-      const next = { challenges: prev.challenges, progress: updatedProgress };
-      saveChallenges(next);
-      return next;
-    });
   }
+
+  useEffect(() => {
+    if (!allDone || !challengeDataLoaded || challengeCompletionProcessed.current) return;
+    challengeCompletionProcessed.current = true;
+    if (!challengeData) return;
+
+    const { challenge, progress } = getActiveChallenge(
+      challengeData.challenges,
+      challengeData.progress,
+    );
+    const safeProgress = progress ?? {
+      challengeId: challenge.id,
+      progress: 0,
+      joinedAt: new Date().toISOString(),
+    };
+    const { progress: newProgress } = updateChallengeProgress(
+      safeProgress,
+      challenge,
+      profile.totalWorkouts,
+      profile.totalXpEarned + streakBonusXp,
+      profile.totalWorkouts * 2,
+    );
+    const next = {
+      challenges: challengeData.challenges,
+      progress: [
+        ...challengeData.progress.filter((item) => item.challengeId !== challenge.id),
+        newProgress,
+      ],
+    };
+    saveChallenges(next);
+  }, [allDone, challengeDataLoaded, challengeData, profile, streakBonusXp]);
 
   const baseWorkoutXp = workoutXp({
     durationMin: plan.durationMin,
@@ -190,7 +226,6 @@ export default function SessionScreen({ plan, source, profile, activeDays, onCom
 
   // Якщо всі вправи завершені і таймер зупинений, автоматично переходимо на екран завершення
   if (allDone && activeTimer === 'none') {
-    setPhase('finished');
     return <FinishedView plan={plan} doneCount={doneCount} totalSets={totalSets} liveCalories={liveCalories} xpEarned={xpEarned} streakBonusXp={streakBonusXp} streakMilestone={streakMilestone} challengeBonusXp={challengeBonusXp} challengeRewardTitle={challengeRewardTitle} onRestart={onRestart} />;
   }
 
