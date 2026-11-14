@@ -26,30 +26,15 @@ import { pluralizeUk } from '@/types';
 import { formatTime } from '@/useCountdown';
 import { EQUIPMENT_LABELS } from '@/weightedLibrary';
 import { ExerciseInstruction } from '@/components/ExerciseInstruction';
-import {
-  workoutXp,
-  updateStreak,
-  getActiveChallenge,
-  saveChallenges,
-  updateChallengeProgress,
-  type UserProfile,
-  type WeeklyChallenge,
-  type ChallengeProgress,
-} from '@/gamification';
+import { workoutXp, updateStreak, type UserProfile } from '@/gamification';
 import { UserProfile as UserProfileCard } from '@/components/UserProfile';
-import { ChallengesWidget } from '@/components/ChallengesWidget';
 
 interface Props {
   plan: WorkoutPlan;
   source: 'ai' | 'fallback';
   profile: UserProfile;
   activeDays: string[];
-  onComplete: (
-    xpEarned: number,
-    streakProfile: UserProfile,
-    challengeBonusXp: number,
-    challengeRewardTitle?: string,
-  ) => void;
+  onComplete: (xpEarned: number, streakProfile: UserProfile) => void;
   onRestart: () => void;
 }
 
