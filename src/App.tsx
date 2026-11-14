@@ -15,6 +15,7 @@ import {
   saveAppearance,
   type AppearanceSettings,
 } from '@/appearance';
+import MusicPlayer from '@/components/MusicPlayer';
 
 type Screen = 'setup' | 'session';
 type Tab = 'workout' | 'appearance';
@@ -154,6 +155,7 @@ function App() {
           xpEarned={levelUp.xpEarned}
         />
       )}
+      <MusicPlayer />
     </>
   );
 }
