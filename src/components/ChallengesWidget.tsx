@@ -1,78 +1,35 @@
 import { useState, useEffect } from 'react';
 import {
-  Flame,
   Zap,
   Target,
   Trophy,
 } from 'lucide-react';
-import type {
-  WeeklyChallenge,
-  ChallengeProgress,
-  LeaderboardEntry,
-} from '@/gamification';
+import type { LeaderboardEntry } from '@/gamification';
 import {
   getActiveChallenge,
-  updateChallengeProgress,
+  loadChallenges,
   saveChallenges,
   loadLeaderboard,
-  saveLeaderboardEntry,
 } from '@/gamification';
 
-interface ChallengesWidgetProps {
-  profile: {
-    level: number;
-    xp: number;
-    totalXpEarned: number;
-    totalWorkouts: number;
-  };
-  onChallengeComplete?: (bonusXp: number, rewardTitle?: string) => void;
-}
-
-export function ChallengesWidget({
-  profile,
-  onChallengeComplete,
-}: ChallengesWidgetProps) {
-  const [data, setData] = useState<{
-    challenges: WeeklyChallenge[];
-    progress: ChallengeProgress[];
-  } | null>(null);
+export function ChallengesWidget() {
+  const [data, setData] = useState(loadChallenges);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [active, setActive] = useState<{
-    challenge: WeeklyChallenge;
-    progress: ChallengeProgress;
-  } | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem('fitstart_challenges');
-    if (stored) {
-      try {
-        setData(JSON.parse(stored));
-      } catch {
-        // Ігноруємо помилки читання сховища чєленіджів
-      }
-    }
     setLeaderboard(loadLeaderboard());
   }, []);
 
   const { challenge, progress } = getActiveChallenge(
-    data?.challenges ?? [],
-    data?.progress ?? [],
+    data.challenges,
+    data.progress,
   );
-
-  useEffect(() => {
-    if (challenge && progress) {
-      setActive({ challenge, progress });
-    }
-    if (!data) {
-      setData({ challenges: [], progress: [] });
-    }
-  }, [challenge, progress, data]);
-
-  if (!active) {
-    return null;
-  }
-
-  const { challenge: activeChallenge, progress: activeProgress } = active;
+  const activeChallenge = challenge;
+  const activeProgress = progress ?? {
+    challengeId: challenge.id,
+    progress: 0,
+    joinedAt: '',
+  };
 
   const percent = Math.min(
     100,
@@ -80,69 +37,22 @@ export function ChallengesWidget({
   );
 
   const handleJoin = () => {
-    setData((prev) => {
-      if (!prev) return prev;
-      const updatedProgress = [
-        ...prev.progress.filter((p) => p.challengeId !== activeChallenge.id),
+    const next = {
+      challenges: [
+        ...data.challenges.filter((item) => item.id !== activeChallenge.id),
+        activeChallenge,
+      ],
+      progress: [
+        ...data.progress.filter((item) => item.challengeId !== activeChallenge.id),
         {
           challengeId: activeChallenge.id,
           progress: 0,
           joinedAt: new Date().toISOString(),
         },
-      ];
-      const next = { challenges: prev.challenges, progress: updatedProgress };
-      saveChallenges(next);
-      return next;
-    });
-    setActive({
-      challenge: activeChallenge,
-      progress: {
-        challengeId: activeChallenge.id,
-        progress: 0,
-        joinedAt: new Date().toISOString(),
-      },
-    });
-  };
-
-  const handleComplete = () => {
-    if (!activeProgress) return;
-
-    const {
-      progress: newProgress,
-      completed,
-      bonusXp,
-    } = updateChallengeProgress(
-      activeProgress,
-      activeChallenge,
-      profile.totalWorkouts,
-      profile.totalXpEarned,
-      profile.totalWorkouts * 2, // приблизна кількість вправ
-    );
-
-    setData((prev) => {
-      if (!prev) return prev;
-      const updated = prev.progress.map((p) =>
-        p.challengeId === activeChallenge.id ? newProgress : p,
-      );
-      const next = { challenges: prev.challenges, progress: updated };
-      saveChallenges(next);
-      return next;
-    });
-
-    setActive((prev) => {
-      if (!prev) return prev;
-      return { ...prev, progress: newProgress };
-    });
-
-    if (completed && bonusXp > 0) {
-      saveLeaderboardEntry({
-        name: 'Ви',
-        xp: profile.totalXpEarned + bonusXp,
-        workouts: profile.totalWorkouts,
-        date: new Date().toISOString(),
-      });
-      onChallengeComplete?.(bonusXp, activeChallenge.rewardTitle);
-    }
+      ],
+    };
+    saveChallenges(next);
+    setData(next);
   };
 
   const isCompleted = activeProgress.completedAt ? true : false;
@@ -214,14 +124,11 @@ export function ChallengesWidget({
             >
               <Zap size={12} /> Приєднатися до чєленіджу
             </button>
-          ) : percent < 100 ? (
-            <button
-              onClick={handleComplete}
-              className="w-full py-2 rounded-lg border border-neon-amber/40 bg-neon-amber/5 text-neon-amber text-xs font-bold hover:bg-neon-amber/10 hover:border-neon-amber transition-all flex items-center justify-center gap-1.5"
-            >
-              <Flame size={12} className="animate-pulse" /> Оновити прогрес
-            </button>
-          ) : null}
+          ) : (
+            <p className="text-[10px] text-center text-cyber-muted">
+              Прогрес оновиться автоматично після завершення тренування
+            </p>
+          )}
         </>
       )}
 

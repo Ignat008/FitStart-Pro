@@ -28,13 +28,13 @@ import { EQUIPMENT_LABELS } from '@/weightedLibrary';
 import { ExerciseInstruction } from '@/components/ExerciseInstruction';
 import {
   getActiveChallenge,
+  loadChallenges,
   saveChallenges,
+  saveLeaderboardEntry,
   updateChallengeProgress,
   workoutXp,
   updateStreak,
-  type ChallengeProgress,
   type UserProfile,
-  type WeeklyChallenge,
 } from '@/gamification';
 import { UserProfile as UserProfileCard } from '@/components/UserProfile';
 import { ChallengesWidget } from '@/components/ChallengesWidget';
@@ -72,8 +72,6 @@ export default function SessionScreen({ plan, source, profile, activeDays, onCom
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [activeTimer, setActiveTimer] = useState<ActiveTimerKind>('none');
   const [phase, setPhase] = useState<'ready' | 'preview' | 'active' | 'finished'>('ready');
-  const [challengeDataLoaded, setChallengeDataLoaded] = useState(false);
-  const challengeCompletionProcessed = useRef(false);
   const completionHandled = useRef(false);
   const [finishResult, setFinishResult] = useState<{
     xpEarned: number;
@@ -92,93 +90,19 @@ export default function SessionScreen({ plan, source, profile, activeDays, onCom
 
   const allDone = doneCount === totalSets && totalSets > 0;
 
-  const [challengeData, setChallengeData] = useState<{
-    challenges: WeeklyChallenge[];
-    progress: ChallengeProgress[];
-  } | null>(null);
-
-  useEffect(() => {
-    const stored = localStorage.getItem('fitstart_challenges');
-    if (stored) {
-      try {
-        setChallengeData(JSON.parse(stored));
-      } catch {
-        // Ігноруємо помилки читання чєленіджів
-      }
-    }
-    setChallengeDataLoaded(true);
-  }, []);
+  const [challengeData] = useState(loadChallenges);
 
   // Оновлюємо стрік та рахуємо бонусний XP, якщо тренування завершено
   let streakBonusXp = 0;
   let streakMilestone: number | null = null;
   let streakUpdatedProfile = profile;
 
-  // Чєленідж: бонусний XP
-  let challengeBonusXp = 0;
-  let challengeRewardTitle: string | undefined;
-
   if (allDone) {
     const streakResult = updateStreak(profile);
     streakUpdatedProfile = streakResult.profile;
     streakBonusXp = streakResult.streakBonusXp;
     streakMilestone = streakResult.streakMilestone;
-
-    // Оновлюємо прогрес чєленіджу
-    const { challenge, progress } = getActiveChallenge(
-      challengeData?.challenges ?? [],
-      challengeData?.progress ?? [],
-    );
-
-    const safeProgress = progress ?? {
-      challengeId: challenge.id,
-      progress: 0,
-      joinedAt: new Date().toISOString(),
-    };
-
-    const { bonusXp } = updateChallengeProgress(
-      safeProgress,
-      challenge,
-      profile.totalWorkouts,
-      profile.totalXpEarned + streakBonusXp,
-      profile.totalWorkouts * 2,
-    );
-
-    challengeBonusXp = bonusXp;
-    challengeRewardTitle = challenge.rewardTitle;
-
   }
-
-  useEffect(() => {
-    if (!allDone || !challengeDataLoaded || challengeCompletionProcessed.current) return;
-    challengeCompletionProcessed.current = true;
-    if (!challengeData) return;
-
-    const { challenge, progress } = getActiveChallenge(
-      challengeData.challenges,
-      challengeData.progress,
-    );
-    const safeProgress = progress ?? {
-      challengeId: challenge.id,
-      progress: 0,
-      joinedAt: new Date().toISOString(),
-    };
-    const { progress: newProgress } = updateChallengeProgress(
-      safeProgress,
-      challenge,
-      profile.totalWorkouts,
-      profile.totalXpEarned + streakBonusXp,
-      profile.totalWorkouts * 2,
-    );
-    const next = {
-      challenges: challengeData.challenges,
-      progress: [
-        ...challengeData.progress.filter((item) => item.challengeId !== challenge.id),
-        newProgress,
-      ],
-    };
-    saveChallenges(next);
-  }, [allDone, challengeDataLoaded, challengeData, profile, streakBonusXp]);
 
   const baseWorkoutXp = workoutXp({
     durationMin: plan.durationMin,
@@ -186,11 +110,49 @@ export default function SessionScreen({ plan, source, profile, activeDays, onCom
     totalSets,
     completed: allDone,
   });
+  const { challenge, progress: challengeProgress } = getActiveChallenge(
+    challengeData.challenges,
+    challengeData.progress,
+  );
+  const challengeUpdate =
+    allDone && challengeProgress
+      ? updateChallengeProgress(
+          challengeProgress,
+          challenge,
+          challengeProgress.progress + (challenge.type === 'workouts' ? 1 : 0),
+          challengeProgress.progress +
+            (challenge.type === 'xp' ? baseWorkoutXp + streakBonusXp : 0),
+          challengeProgress.progress + (challenge.type === 'exercises' ? doneCount : 0),
+        )
+      : null;
+  const challengeBonusXp = challengeUpdate?.bonusXp ?? 0;
+  const challengeRewardTitle = challengeBonusXp > 0 ? challenge.rewardTitle : undefined;
   const xpEarned = baseWorkoutXp + streakBonusXp + challengeBonusXp;
 
   const handleFinish = useCallback(() => {
     if (completionHandled.current) return;
     completionHandled.current = true;
+    if (challengeUpdate) {
+      const next = {
+        challenges: [
+          ...challengeData.challenges.filter((item) => item.id !== challenge.id),
+          challenge,
+        ],
+        progress: [
+          ...challengeData.progress.filter((item) => item.challengeId !== challenge.id),
+          challengeUpdate.progress,
+        ],
+      };
+      saveChallenges(next);
+      if (challengeBonusXp > 0) {
+        saveLeaderboardEntry({
+          name: 'Ви',
+          xp: profile.totalXpEarned + xpEarned,
+          workouts: profile.totalWorkouts + 1,
+          date: new Date().toISOString(),
+        });
+      }
+    }
     setFinishResult({
       xpEarned,
       streakBonusXp,
@@ -208,13 +170,17 @@ export default function SessionScreen({ plan, source, profile, activeDays, onCom
     streakMilestone,
     challengeBonusXp,
     challengeRewardTitle,
+    challengeUpdate,
+    challengeData,
+    challenge,
+    profile,
   ]);
 
   useEffect(() => {
-    if (allDone && activeTimer === 'none' && challengeDataLoaded) {
+    if (allDone && activeTimer === 'none') {
       handleFinish();
     }
-  }, [allDone, activeTimer, challengeDataLoaded, handleFinish]);
+  }, [allDone, activeTimer, handleFinish]);
 
   if (phase === 'finished') {
     return <FinishedView plan={plan} doneCount={doneCount} totalSets={totalSets} liveCalories={liveCalories} xpEarned={finishResult?.xpEarned ?? xpEarned} streakBonusXp={finishResult?.streakBonusXp ?? streakBonusXp} streakMilestone={finishResult?.streakMilestone ?? streakMilestone} challengeBonusXp={finishResult?.challengeBonusXp ?? challengeBonusXp} challengeRewardTitle={finishResult?.challengeRewardTitle ?? challengeRewardTitle} onRestart={onRestart} />;
@@ -921,17 +887,7 @@ function ActiveSession({
             <p className="text-[11px] text-cyber-muted mt-2 text-center">{Math.round(progress)}% завершено</p>
           </div>
 
-          <ChallengesWidget
-            profile={{
-              level: profile.level,
-              xp: profile.xp,
-              totalXpEarned: profile.totalXpEarned,
-              totalWorkouts: profile.totalWorkouts,
-            }}
-            onChallengeComplete={() => {
-              // Чєленідж обробляється через handleFinish при завершенні сесії
-            }}
-          />
+          <ChallengesWidget />
 
           <button
             onClick={() => onFinish(xpEarned)}

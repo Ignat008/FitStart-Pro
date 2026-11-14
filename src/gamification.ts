@@ -384,27 +384,36 @@ export function getActiveChallenge(
   progress: ChallengeProgress[],
 ): { challenge: WeeklyChallenge; progress: ChallengeProgress | null } {
   const weekStart = getWeekStart();
-  const existing = progress.find((p) => p.challengeId.startsWith(weekStart));
+  const challengeIdPrefix = `${weekStart}-`;
+  const existing = progress.find((item) => item.challengeId.startsWith(challengeIdPrefix));
 
   if (existing) {
-    const challenge = challenges.find((c) => c.id === existing.challengeId);
-    if (challenge) {
-      return { challenge, progress: existing };
+    const storedChallenge = challenges.find((item) => item.id === existing.challengeId);
+    const defaultChallengeId = existing.challengeId.slice(challengeIdPrefix.length);
+    const challengeDefinition =
+      storedChallenge ?? DEFAULT_CHALLENGES.find((item) => item.id === defaultChallengeId);
+
+    if (challengeDefinition) {
+      return {
+        challenge: { ...challengeDefinition, id: existing.challengeId, weekStart },
+        progress: existing,
+      };
     }
   }
 
-  // Обираємо перший доступний чєленідж для поточного тижня
+  const weekNumber = Math.floor(
+    Date.parse(`${weekStart}T00:00:00Z`) / (7 * 24 * 60 * 60 * 1000),
+  );
+  const challengeIndex =
+    ((weekNumber % DEFAULT_CHALLENGES.length) + DEFAULT_CHALLENGES.length) %
+    DEFAULT_CHALLENGES.length;
+  const challengeDefinition = DEFAULT_CHALLENGES[challengeIndex];
   const challenge = {
-    ...DEFAULT_CHALLENGES[0],
-    id: `${weekStart}-${DEFAULT_CHALLENGES[0].id}`,
+    ...challengeDefinition,
+    id: `${weekStart}-${challengeDefinition.id}`,
     weekStart,
   };
-  const newProgress: ChallengeProgress = {
-    challengeId: challenge.id,
-    progress: 0,
-    joinedAt: new Date().toISOString(),
-  };
-  return { challenge, progress: newProgress };
+  return { challenge, progress: null };
 }
 
 /** Оновлює прогрес чєленіджу після тренування або нарахування XP. */

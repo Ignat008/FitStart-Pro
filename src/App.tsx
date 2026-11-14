@@ -86,17 +86,7 @@ function App() {
           <div className="relative z-10 mb-4">
             <UserProfileCard profile={profile} activeDays={profile.workoutDates} compact />
           </div>
-          <ChallengesWidget
-            profile={{
-              level: profile.level,
-              xp: profile.xp,
-              totalXpEarned: profile.totalXpEarned,
-              totalWorkouts: profile.totalWorkouts,
-            }}
-            onChallengeComplete={() => {
-              // Чєленідж обробляється в SessionScreen при завершенні тренування
-            }}
-          />
+          <ChallengesWidget />
           <SetupScreen
             onGenerate={handleGenerate}
             onOpenSettings={() => setSettingsOpen(true)}
