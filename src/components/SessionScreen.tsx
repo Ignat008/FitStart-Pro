@@ -26,9 +26,18 @@ import { pluralizeUk } from '@/types';
 import { formatTime } from '@/useCountdown';
 import { EQUIPMENT_LABELS } from '@/weightedLibrary';
 import { ExerciseInstruction } from '@/components/ExerciseInstruction';
-import { workoutXp, updateStreak, type UserProfile } from '@/gamification';
+import {
+  workoutXp,
+  updateStreak,
+  getActiveChallenge,
+  saveChallenges,
+  updateChallengeProgress,
+  type UserProfile,
+  type WeeklyChallenge,
+  type ChallengeProgress,
+} from '@/gamification';
 import { UserProfile as UserProfileCard } from '@/components/UserProfile';
-import { StreakBadge } from '@/components/StreakBadge';
+import { ChallengesWidget } from '@/components/ChallengesWidget';
 
 interface Props {
   plan: WorkoutPlan;
@@ -38,8 +47,8 @@ interface Props {
   onComplete: (
     xpEarned: number,
     streakProfile: UserProfile,
-    streakBonusXp: number,
-    streakMilestone: number | null,
+    challengeBonusXp: number,
+    challengeRewardTitle?: string,
   ) => void;
   onRestart: () => void;
 }
@@ -73,16 +82,69 @@ export default function SessionScreen({ plan, source, profile, activeDays, onCom
 
   const allDone = doneCount === totalSets && totalSets > 0;
 
+  const [challengeData, setChallengeData] = useState<{
+    challenges: WeeklyChallenge[];
+    progress: ChallengeProgress[];
+  } | null>(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('fitstart_challenges');
+    if (stored) {
+      try {
+        setChallengeData(JSON.parse(stored));
+      } catch {
+        // Ігноруємо помилки читання чєленіджів
+      }
+    }
+  }, []);
+
   // Оновлюємо стрік та рахуємо бонусний XP, якщо тренування завершено
   let streakBonusXp = 0;
   let streakMilestone: number | null = null;
   let streakUpdatedProfile = profile;
+
+  // Чєленідж: бонусний XP
+  let challengeBonusXp = 0;
+  let challengeRewardTitle: string | undefined;
 
   if (allDone) {
     const streakResult = updateStreak(profile);
     streakUpdatedProfile = streakResult.profile;
     streakBonusXp = streakResult.streakBonusXp;
     streakMilestone = streakResult.streakMilestone;
+
+    // Оновлюємо прогрес чєленіджу
+    const { challenge, progress } = getActiveChallenge(
+      challengeData?.challenges ?? [],
+      challengeData?.progress ?? [],
+    );
+
+    if (!progress) return;
+
+    const {
+      progress: newProgress,
+      bonusXp,
+    } = updateChallengeProgress(
+      progress,
+      challenge,
+      profile.totalWorkouts,
+      profile.totalXpEarned + streakBonusXp,
+      profile.totalWorkouts * 2,
+    );
+
+    challengeBonusXp = bonusXp;
+    challengeRewardTitle = challenge.rewardTitle;
+
+    // Зберігаємо оновлений прогрес чєленіджу
+    setChallengeData((prev) => {
+      if (!prev) return prev;
+      const updatedProgress = prev.progress.map((p) =>
+        p.challengeId === challenge.id ? newProgress : p,
+      );
+      const next = { challenges: prev.challenges, progress: updatedProgress };
+      saveChallenges(next);
+      return next;
+    });
   }
 
   const baseWorkoutXp = workoutXp({
@@ -91,15 +153,15 @@ export default function SessionScreen({ plan, source, profile, activeDays, onCom
     totalSets,
     completed: allDone,
   });
-  const xpEarned = baseWorkoutXp + streakBonusXp;
+  const xpEarned = baseWorkoutXp + streakBonusXp + challengeBonusXp;
 
   const handleFinish = () => {
     setPhase('finished');
-    onComplete(xpEarned, streakUpdatedProfile, streakBonusXp, streakMilestone);
+    onComplete(xpEarned, streakUpdatedProfile, challengeBonusXp, challengeRewardTitle);
   };
 
   if (phase === 'finished') {
-    return <FinishedView plan={plan} doneCount={doneCount} totalSets={totalSets} liveCalories={liveCalories} xpEarned={xpEarned} streakBonusXp={streakBonusXp} streakMilestone={streakMilestone} onRestart={onRestart} />;
+    return <FinishedView plan={plan} doneCount={doneCount} totalSets={totalSets} liveCalories={liveCalories} xpEarned={xpEarned} streakBonusXp={streakBonusXp} streakMilestone={streakMilestone} challengeBonusXp={challengeBonusXp} challengeRewardTitle={challengeRewardTitle} onRestart={onRestart} />;
   }
 
   if (phase === 'ready') {
@@ -788,6 +850,18 @@ function ActiveSession({
             <p className="text-[11px] text-cyber-muted mt-2 text-center">{Math.round(progress)}% завершено</p>
           </div>
 
+          <ChallengesWidget
+            profile={{
+              level: profile.level,
+              xp: profile.xp,
+              totalXpEarned: profile.totalXpEarned,
+              totalWorkouts: profile.totalWorkouts,
+            }}
+            onChallengeComplete={() => {
+              // Чєленідж обробляється через handleFinish при завершенні сесії
+            }}
+          />
+
           <button
             onClick={() => onFinish(xpEarned)}
             disabled={!allDone}
@@ -941,6 +1015,8 @@ function FinishedView({
   xpEarned,
   streakBonusXp,
   streakMilestone,
+  challengeBonusXp,
+  challengeRewardTitle,
   onRestart,
 }: {
   plan: WorkoutPlan;
@@ -950,6 +1026,8 @@ function FinishedView({
   xpEarned: number;
   streakBonusXp: number;
   streakMilestone: number | null;
+  challengeBonusXp: number;
+  challengeRewardTitle?: string;
   onRestart: () => void;
 }) {
   const streakBonusLabel = streakMilestone
@@ -987,6 +1065,23 @@ function FinishedView({
               +{streakBonusXp} XP
             </div>
             <p className="text-[11px] text-cyber-muted">{streakBonusLabel} — ви зберегли серію тренувань!</p>
+          </div>
+        )}
+
+        {challengeBonusXp > 0 && challengeRewardTitle && (
+          <div className="cyber-panel p-4 rounded-xl border border-neon-pink/40 bg-neon-pink/10 mb-6 animate-fade-in">
+            <div className="flex items-center gap-2 mb-1">
+              <Trophy size={16} className="text-neon-pink animate-pulse" />
+              <span className="text-xs font-bold text-neon-pink uppercase tracking-wider">
+                Чєленідж виконано!
+              </span>
+            </div>
+            <div className="text-sm font-mono font-bold text-neon-pink mb-1">
+              +{challengeBonusXp} XP
+            </div>
+            <p className="text-[11px] text-cyber-muted">
+              Нове звання: {challengeRewardTitle}
+            </p>
           </div>
         )}
 

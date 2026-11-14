@@ -246,3 +246,205 @@ export function isSameDay(a: Date, b: Date): boolean {
     a.getDate() === b.getDate()
   );
 }
+
+/* ==================== ТИЖНЕВІ ЧЕЛЕНІДЖІ ==================== */
+
+export type ChallengeType = 'workouts' | 'xp' | 'exercises';
+
+export interface WeeklyChallenge {
+  id: string;
+  title: string;
+  description: string;
+  type: ChallengeType;
+  target: number; // кількість тренувань / XP / вправ
+  rewardXp: number;
+  rewardTitle?: string; // нове звання при завершенні
+  weekStart?: string; // ISO дата початку тижня (понеділок)
+}
+
+export interface ChallengeProgress {
+  challengeId: string;
+  progress: number;
+  joinedAt: string; // ISO
+  completedAt?: string; // ISO
+}
+
+export interface LeaderboardEntry {
+  name: string;
+  xp: number;
+  workouts: number;
+  date: string; // ISO
+}
+
+const CHALLENGES_STORAGE_KEY = 'fitstart_challenges';
+const LEADERBOARD_STORAGE_KEY = 'fitstart_leaderboard';
+
+const DEFAULT_CHALLENGES: WeeklyChallenge[] = [
+  {
+    id: 'weekly-workouts-3',
+    title: 'Три тренування за тиждень',
+    description: 'Заверши 3 тренування до кінця тижня',
+    type: 'workouts',
+    target: 3,
+    rewardXp: 150,
+    rewardTitle: 'Систематичність',
+  },
+  {
+    id: 'weekly-xp-500',
+    title: 'Здобути 500 XP',
+    description: 'Нароби 500 досвіду за тиждень',
+    type: 'xp',
+    target: 500,
+    rewardXp: 200,
+    rewardTitle: 'Здобувач',
+  },
+  {
+    id: 'weekly-exercises-10',
+    title: '10 вправ за тиждень',
+    description: 'Виконай 10 окремих вправ у тренуваннях',
+    type: 'exercises',
+    target: 10,
+    rewardXp: 100,
+    rewardTitle: 'Універсал',
+  },
+];
+
+/** Повертає початок поточного тижня (понеділок) у форматі ISO дати. */
+function getWeekStart(date: Date = new Date()): string {
+  const d = new Date(date);
+  const day = d.getDay(); // 0 = неділя
+  const mondayOffset = day === 0 ? -6 : 1 - day; // понеділок = 1
+  d.setDate(d.getDate() + mondayOffset);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Завантажує прогрес чєленіджів з localStorage. */
+export function loadChallenges(): {
+  challenges: WeeklyChallenge[];
+  progress: ChallengeProgress[];
+} {
+  try {
+    const raw = localStorage.getItem(CHALLENGES_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        challenges: Array.isArray(parsed.challenges) ? parsed.challenges : DEFAULT_CHALLENGES,
+        progress: Array.isArray(parsed.progress) ? parsed.progress : [],
+      };
+    }
+  } catch {
+    // Ігноруємо помилки читання чєленіджів
+  }
+  return { challenges: DEFAULT_CHALLENGES, progress: [] };
+}
+
+/** Зберігає прогрес чєленіджів у localStorage. */
+export function saveChallenges(data: {
+  challenges: WeeklyChallenge[];
+  progress: ChallengeProgress[];
+}): void {
+  try {
+    localStorage.setItem(CHALLENGES_STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    // Ігноруємо помилки запису чєленіджів
+  }
+}
+
+/** Завантажує таблицю лідерів. */
+export function loadLeaderboard(): LeaderboardEntry[] {
+  try {
+    const raw = localStorage.getItem(LEADERBOARD_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    }
+  } catch {
+    // Ігноруємо помилки читання лідерборду
+  }
+  return [];
+}
+
+/** Зберігає запис у таблицю лідерів. */
+export function saveLeaderboardEntry(entry: LeaderboardEntry): void {
+  try {
+    const current = loadLeaderboard();
+    current.push(entry);
+    current.sort((a, b) => b.xp - a.xp || b.workouts - a.workouts);
+    const top = current.slice(0, 10);
+    localStorage.setItem(LEADERBOARD_STORAGE_KEY, JSON.stringify(top));
+  } catch {
+    // Ігноруємо помилки запису лідерборду
+  }
+}
+
+/** Повертає активний чєленідж на поточний тиждень (створює, якщо ще немає). */
+export function getActiveChallenge(
+  challenges: WeeklyChallenge[],
+  progress: ChallengeProgress[],
+): { challenge: WeeklyChallenge; progress: ChallengeProgress | null } {
+  const weekStart = getWeekStart();
+  const existing = progress.find((p) => p.challengeId.startsWith(weekStart));
+
+  if (existing) {
+    const challenge = challenges.find((c) => c.id === existing.challengeId);
+    if (challenge) {
+      return { challenge, progress: existing };
+    }
+  }
+
+  // Обираємо перший доступний чєленідж для поточного тижня
+  const challenge = {
+    ...DEFAULT_CHALLENGES[0],
+    id: `${weekStart}-${DEFAULT_CHALLENGES[0].id}`,
+    weekStart,
+  };
+  const newProgress: ChallengeProgress = {
+    challengeId: challenge.id,
+    progress: 0,
+    joinedAt: new Date().toISOString(),
+  };
+  return { challenge, progress: newProgress };
+}
+
+/** Оновлює прогрес чєленіджу після тренування або нарахування XP. */
+export function updateChallengeProgress(
+  progress: ChallengeProgress,
+  challenge: WeeklyChallenge,
+  workoutCount: number,
+  xpEarned: number,
+  exercisesCount: number,
+): { progress: ChallengeProgress; completed: boolean; bonusXp: number } {
+  let newProgress = progress.progress;
+  let completed = false;
+  let bonusXp = 0;
+
+  if (progress.completedAt) return { progress, completed: true, bonusXp: 0 };
+
+  switch (challenge.type) {
+    case 'workouts':
+      newProgress = Math.min(workoutCount, challenge.target);
+      break;
+    case 'xp':
+      newProgress = Math.min(xpEarned, challenge.target);
+      break;
+    case 'exercises':
+      newProgress = Math.min(exercisesCount, challenge.target);
+      break;
+  }
+
+  if (newProgress >= challenge.target) {
+    completed = true;
+    bonusXp = challenge.rewardXp;
+  }
+
+  return {
+    progress: {
+      ...progress,
+      progress: newProgress,
+      completedAt: completed ? new Date().toISOString() : progress.completedAt,
+    },
+    completed,
+    bonusXp,
+  };
+}

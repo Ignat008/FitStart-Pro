@@ -7,6 +7,7 @@ import type { SessionInput, WorkoutPlan } from '@/types';
 import { loadProfile, saveProfile, awardXp, type UserProfile } from '@/gamification';
 import { UserProfile as UserProfileCard } from '@/components/UserProfile';
 import { LevelUpModal } from '@/components/LevelUpModal';
+import { ChallengesWidget } from '@/components/ChallengesWidget';
 
 type Screen = 'setup' | 'session';
 
@@ -51,10 +52,17 @@ function App() {
   const handleFinish = (
     xpEarned: number,
     streakProfile: UserProfile,
+    challengeBonusXp: number,
+    challengeRewardTitle?: string,
   ) => {
-    const { profile: newProfile, leveledUp } = awardXp(streakProfile, xpEarned);
+    const { profile: newProfile, leveledUp } = awardXp(streakProfile, xpEarned + challengeBonusXp);
     setProfile(newProfile);
     saveProfile(newProfile);
+
+    if (challengeBonusXp > 0 && challengeRewardTitle) {
+      // Звання буде відображено в LevelUpModal або повідомленні
+      // Тут можна додати додаткову логіку при потребі
+    }
 
     if (leveledUp) {
       setLevelUp({
@@ -62,7 +70,7 @@ function App() {
         oldLevel: profile.level,
         newLevel: newProfile.level,
         profile: newProfile,
-        xpEarned,
+        xpEarned: xpEarned + challengeBonusXp,
       });
     }
   };
@@ -78,6 +86,17 @@ function App() {
           <div className="relative z-10 mb-4">
             <UserProfileCard profile={profile} activeDays={profile.workoutDates} compact />
           </div>
+          <ChallengesWidget
+            profile={{
+              level: profile.level,
+              xp: profile.xp,
+              totalXpEarned: profile.totalXpEarned,
+              totalWorkouts: profile.totalWorkouts,
+            }}
+            onChallengeComplete={() => {
+              // Чєленідж обробляється в SessionScreen при завершенні тренування
+            }}
+          />
           <SetupScreen
             onGenerate={handleGenerate}
             onOpenSettings={() => setSettingsOpen(true)}
@@ -92,8 +111,8 @@ function App() {
           source={source}
           profile={profile}
           activeDays={profile.workoutDates}
-          onComplete={(xpEarned: number, streakProfile: UserProfile) => {
-            handleFinish(xpEarned, streakProfile);
+          onComplete={(xpEarned: number, streakProfile: UserProfile, challengeBonusXp: number, challengeRewardTitle?: string) => {
+            handleFinish(xpEarned, streakProfile, challengeBonusXp, challengeRewardTitle);
             setScreen('setup');
           }}
           onRestart={handleRestart}
