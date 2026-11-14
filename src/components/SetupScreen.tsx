@@ -258,7 +258,7 @@ export default function SetupScreen({
         </div>
       </header>
 
-      <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-8 py-8 sm:py-12">
+      <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-8 py-8 pb-24 sm:py-12">
         <div className="text-center mb-10 animate-slide-up">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-neon-blue/30 bg-neon-blue/5 text-xs text-neon-blue mb-4">
             <Flame size={12} />

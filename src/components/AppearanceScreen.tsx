@@ -14,7 +14,7 @@ interface Props {
 export default function AppearanceScreen({ appearance, onChange, onBack }: Props) {
   return (
     <div className="min-h-screen grid-bg relative overflow-hidden">
-      <header className="relative z-10 flex items-center justify-between gap-4 px-4 sm:px-8 py-4 border-b border-cyber-border/60">
+      <header className="relative z-10 flex flex-col items-start justify-between gap-3 px-4 sm:px-8 py-4 border-b border-cyber-border/60 sm:flex-row sm:items-center sm:gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-neon-blue/15 border border-neon-blue/40 flex items-center justify-center">
             <Palette size={20} className="text-neon-blue" />
@@ -33,7 +33,7 @@ export default function AppearanceScreen({ appearance, onChange, onBack }: Props
         </button>
       </header>
 
-      <main className="relative z-10 max-w-4xl mx-auto px-4 sm:px-8 py-8 sm:py-12">
+      <main className="relative z-10 max-w-4xl mx-auto px-4 sm:px-8 py-8 pb-24 sm:py-12">
         <section className="cyber-panel p-5 sm:p-7 mb-6">
           <div className="flex items-center gap-2 mb-1">
             <Sparkles size={16} className="text-neon-pink" />

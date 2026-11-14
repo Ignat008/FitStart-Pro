@@ -318,7 +318,7 @@ function ReadyView({
   onRestart: () => void;
 }) {
   return (
-    <div className="min-h-screen grid-bg relative overflow-hidden flex items-center justify-center p-4">
+    <div className="min-h-screen grid-bg relative overflow-hidden flex items-center justify-center p-4 pb-24 sm:pb-4">
       <div className="pointer-events-none absolute -top-40 -left-40 w-96 h-96 rounded-full bg-neon-pink/10 blur-3xl" />
       <div className="pointer-events-none absolute top-0 right-0 w-96 h-96 rounded-full bg-neon-blue/10 blur-3xl" />
       <div className="relative z-10 max-w-lg w-full text-center animate-slide-up">
@@ -487,7 +487,7 @@ function PreviewView({
       </div>
 
       {/* Sticky action bar */}
-      <div className="fixed bottom-0 inset-x-0 z-20 border-t border-cyber-border/60 bg-cyber-bg/90 backdrop-blur-md">
+      <div className="fixed bottom-0 inset-x-0 z-50 border-t border-cyber-border/60 bg-cyber-bg/90 backdrop-blur-md pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
         <div className="max-w-3xl mx-auto px-4 sm:px-8 py-3 flex items-center gap-3">
           <button
             onClick={onBack}
@@ -755,7 +755,7 @@ function ActiveSession({
       <div className="pointer-events-none absolute top-0 right-0 w-96 h-96 rounded-full bg-neon-blue/10 blur-3xl" />
 
       <header className="relative z-10 border-b border-cyber-border/60 bg-cyber-surface/60 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto px-4 sm:px-8 py-3 flex items-center justify-between gap-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-8 py-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-9 h-9 rounded-lg bg-neon-pink/15 border border-neon-pink/40 flex items-center justify-center shrink-0">
               <Activity size={16} className="text-neon-pink" />
@@ -767,12 +767,12 @@ function ActiveSession({
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex items-center justify-between gap-2 sm:justify-start sm:gap-3 shrink-0">
             <StatChip icon={Flame} value={liveCalories} label="ккал" color="orange" />
             <StatChip icon={Zap} value={liveXp} label="XP" color="yellow" />
             <StatChip icon={CheckCircle2} value={`${doneCount}/${totalSets}`} label="сетів" color="blue" />
           </div>
-          <div className="w-full sm:w-auto mt-3 sm:mt-0 sm:ml-4">
+          <div className="w-full lg:w-auto">
             <UserProfileCard profile={profile} activeDays={activeDays} compact />
           </div>
         </div>
@@ -784,7 +784,7 @@ function ActiveSession({
         </div>
       </header>
 
-      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-8 py-6 grid lg:grid-cols-[1fr_340px] gap-6">
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-8 py-6 pb-24 lg:pb-6 grid lg:grid-cols-[1fr_340px] gap-6">
         <div className="space-y-6">
           <div className="cyber-panel p-4 border-neon-blue/30 animate-fade-in">
             <p className="text-sm leading-relaxed text-cyber-text/90">
@@ -1109,7 +1109,7 @@ function FinishedView({
     ? `${streakMilestone} днів підряд`
     : '';
   return (
-    <div className="min-h-screen grid-bg relative overflow-hidden flex items-center justify-center p-4">
+    <div className="min-h-screen grid-bg relative overflow-hidden flex items-center justify-center p-4 pb-24 sm:pb-4">
       <div className="pointer-events-none absolute inset-0 bg-neon-green/5" />
       <div className="pointer-events-none absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-neon-green/10 blur-3xl" />
       <div className="relative z-10 max-w-lg w-full text-center animate-slide-up">

@@ -296,7 +296,7 @@ export default function MusicPlayer() {
 
   return (
     <div
-      className={`fixed bottom-3 right-3 z-[60] max-w-2xl ${
+      className={`fixed bottom-3 right-3 z-40 max-w-2xl ${
         expanded ? 'left-3 w-auto' : 'w-fit'
       } sm:left-3 sm:right-3 sm:mx-auto sm:w-auto`}
     >
@@ -559,7 +559,7 @@ export default function MusicPlayer() {
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="flex sm:hidden w-12 h-12 items-center justify-center rounded-full bg-neon-blue text-white shadow-lg"
+          className="flex sm:hidden w-10 h-10 items-center justify-center rounded-full bg-neon-blue text-white shadow-lg"
           aria-label="Відкрити музичний плеєр"
           aria-expanded={expanded}
         >
