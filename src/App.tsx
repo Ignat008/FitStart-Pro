@@ -76,7 +76,7 @@ function App() {
       {screen === 'setup' && (
         <>
           <div className="relative z-10 mb-4">
-            <UserProfileCard profile={profile} activeDays={[]} compact />
+            <UserProfileCard profile={profile} activeDays={profile.workoutDates} compact />
           </div>
           <SetupScreen
             onGenerate={handleGenerate}
@@ -91,7 +91,7 @@ function App() {
           plan={plan}
           source={source}
           profile={profile}
-          activeDays={[]}
+          activeDays={profile.workoutDates}
           onComplete={(xpEarned: number, streakProfile: UserProfile) => {
             handleFinish(xpEarned, streakProfile);
             setScreen('setup');

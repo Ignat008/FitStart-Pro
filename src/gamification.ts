@@ -4,6 +4,7 @@ export interface UserProfile {
   totalXpEarned: number; // сумарно заробив усього
   totalWorkouts: number;
   lastWorkoutDate?: string;
+  workoutDates: string[]; // дати тренувань (YYYY-MM-DD)
   currentStreak: number; // поточний стрік днів підряд
   longestStreak: number; // найдовший стрік за всю історію
 }
@@ -57,6 +58,7 @@ export function loadProfile(): UserProfile {
         totalXpEarned: typeof parsed.totalXpEarned === 'number' ? parsed.totalXpEarned : 0,
         totalWorkouts: typeof parsed.totalWorkouts === 'number' ? parsed.totalWorkouts : 0,
         lastWorkoutDate: parsed.lastWorkoutDate || undefined,
+        workoutDates: Array.isArray(parsed.workoutDates) ? parsed.workoutDates : [],
         currentStreak: typeof parsed.currentStreak === 'number' ? parsed.currentStreak : 0,
         longestStreak: typeof parsed.longestStreak === 'number' ? parsed.longestStreak : 0,
       };
@@ -69,6 +71,7 @@ export function loadProfile(): UserProfile {
     xp: 0,
     totalXpEarned: 0,
     totalWorkouts: 0,
+    workoutDates: [],
     currentStreak: 0,
     longestStreak: 0,
   };
@@ -86,8 +89,9 @@ export function saveProfile(profile: UserProfile): void {
  * Оновлює стрік днів підряд.
  * Повертає новий профіль та бонусний XP (0 якщо немає бонусу).
  * Правила:
- * - Якщо останнє тренування було вчора або сьогодні — стрік +1.
- * - Якщо пропущений цілий день — стрік скидається на 0.
+ * - Якщо вже тренувались сьогодні — стрік не змінюємо, бонусів немає.
+ * - Якщо останнє тренування було вчора — стрік +1.
+ * - Якщо пропущений цілий день або більше — стрік скидається на 1 (поточний день).
  * - При досягненні 7 або 30 днів — бонусний XP.
  */
 export function updateStreak(
@@ -98,7 +102,7 @@ export function updateStreak(
   const todayStr = today.toISOString().slice(0, 10);
 
   // Якщо вже тренувались сьогодні — стрік не змінюємо, бонусів немає
-  if (profile.lastWorkoutDate === todayStr) {
+  if (profile.workoutDates.includes(todayStr)) {
     return { profile, streakBonusXp: 0, streakMilestone: null };
   }
 
@@ -137,6 +141,7 @@ export function updateStreak(
     currentStreak: newStreak,
     longestStreak: newLongestStreak,
     lastWorkoutDate: todayStr,
+    workoutDates: [...profile.workoutDates, todayStr],
   };
 
   return {
